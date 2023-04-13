@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, request, jsonify, send_from_directory
 import pandas as pd
 import yaml
 import os
@@ -7,39 +7,64 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return '''
+        <form method="post" action="/convert">
+            <label for="file_path">File path:</label>
+            <input type="text" name="file_path" required><br>
+            <label for="output_file">Output file name:</label>
+            <input type="text" name="output_file" required><br>
+            <label for="output_dir">Output directory:</label>
+            <input type="text" name="output_dir" required><br>
+            <label for="listen_port">Listen port:</label>
+            <input type="text" name="listen_port" value="5000"><br>
+            <label for="exporter_name">Exporter:</label>
+            <select name="exporter_name" multiple>
+                <option value="exporter_blackbox">Exporter Blackbox</option>
+                <option value="exporter_linux">Exporter Linux</option>
+                <option value="exporter_windows">Exporter Windows</option>
+            </select><br>
+            <input type="submit" value="Convert">
+        </form>
+    '''
 
 @app.route('/convert', methods=['POST'])
 def convert():
-    file = request.files['file']
-    output_file = 'converted.yaml'
-
+    # Get file path, output file name, and output directory from form data
+    file_path = request.form['file_path']
+    output_file = request.form['output_file']
+    output_dir = request.form['output_dir']
+    listen_port = request.form.get('listen_port', '5000')
+    exporter_name = request.form.getlist('exporter_name')
+    
     # Read CSV file into pandas DataFrame
-    df = pd.read_csv(file)
-
-    # Filter the data based on the condition
-    df_filtered = df[df['Exporter_name_os'] == 'exporter_linux']
+    df = pd.read_csv(file_path)
 
     # Create an empty dictionary to hold the final YAML data
-    data = {}
+    yaml_data = {}
 
-    # Loop through the filtered data and add to the dictionary
-    for index, row in df_filtered.iterrows():
-        data[row['Metric_name']] = {
-            'description': row['Description'],
-            'labels': row['Label'],
-            'type': row['Metric_type']
-        }
+    # Loop through each exporter selected in the form
+    for exporter in exporter_name:
+        # Filter the data based on the exporter condition
+        df_filtered = df[df['Exporter_name_os'] == exporter]
 
-    # Write dictionary to YAML file
-    with open(output_file, 'w') as file:
-        yaml.dump(data, file, default_flow_style=False)
+        # Convert the filtered DataFrame to a dictionary
+        data_dict = df_filtered.to_dict(orient='records')
 
-    # Send file for download
-    return send_file(output_file, as_attachment=True, attachment_filename=output_file)
+        # Add the data to the YAML dictionary with the exporter name as the key
+        yaml_data[exporter] = data_dict
 
-    # Delete file from server
-    os.remove(output_file)
+    # Write the YAML data to a file
+    output_path = os.path.join(output_dir, output_file)
+    with open(output_path, 'w') as f:
+        yaml.dump(yaml_data, f)
+
+    # Return a link to download the file
+    return f'File saved to <a href="/download/{output_file}">{output_file}</a>'
+
+@app.route('/download/<path:path>')
+def download(path):
+    # Return the file in the output directory as a download
+    return send_from_directory('output', path, as_attachment=True)
 
 if __name__ == '__main__':
-    app.run()
+    app.run(port=listen_port)
