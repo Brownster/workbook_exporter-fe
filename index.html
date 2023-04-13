@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Exporter Converter</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<h1>Exporter Converter</h1>
+
+<form id="exporter-form" action="convert" method="post" enctype="multipart/form-data">
+    <div>
+        <label for="csv-file">Select a CSV file to convert:</label>
+        <input type="file" id="csv-file" name="csv-file">
+    </div>
+    <div>
+        <label for="exporters">Select the exporters to convert:</label>
+        <select multiple id="exporters" name="exporters[]">
+            <option value="exporter_linux">Exporter Linux</option>
+            <option value="exporter_windows">Exporter Windows</option>
+            <option value="exporter_mac">Exporter Mac</option>
+            <option value="exporter_blackbox">Exporter Blackbox</option>
+        </select>
+    </div>
+    <div>
+        <button type="submit">Convert</button>
+    </div>
+</form>
+
+<script>
+    // Disable the form submission by default
+    $('#exporter-form').submit(function (event) {
+        event.preventDefault();
+    });
+
+    // Enable the form submission when the CSV file is selected
+    $('#csv-file').change(function () {
+        $('#exporter-form').off('submit').submit();
+    });
+</script>
+
+</body>
+</html>
