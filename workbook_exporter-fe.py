@@ -28,33 +28,32 @@ selected_exporter_names = []
 
 ############################################################ EXPORTER_CALLBACK #####################################################################
 
-def exporter_callback(file_path, output_file, output_dir):
-    exporter_generic('exporter_callback', file_path, output_file, output_dir)
+def exporter_callback(input_file, output_file, existing_yaml_file=None):
+    exporter_generic('exporter_callback', input_file, output_file, existing_yaml_file)
 
 ########################################################   exporter_BREEZE   ############################################################
 
-def exporter_breeze(file_path, output_file, output_dir):
-    exporter_generic('exporter_breeze', file_path, output_file, output_dir)
+def exporter_breeze(input_file, output_file, existing_yaml_file=None):
+    exporter_generic('exporter_breeze', input_file, output_file, existing_yaml_file)
 
 
 ###############################################################  exporter_CMS  #############################################################
 
-def exporter_cms(file_path, output_file, output_dir):
-    exporter_generic('exporter_cms', file_path, output_file, output_dir)
+def exporter_cms(input_file, output_file, existing_yaml_file=None):
+    exporter_generic('exporter_cms', input_file, output_file, existing_yaml_file)
 
 ############################################################  EXPORTER_SM  ################################################################################
 
-def exporter_sm(file_path, output_file, output_dir):
-    exporter_generic('exporter_sm', file_path, output_file, output_dir)
+def exporter_sm(input_file, output_file, existing_yaml_file=None):
+    exporter_generic('exporter_sm', input_file, output_file, existing_yaml_file)
 
 ####################################################    EXPORTER_LINUX    #############################################################
 
-def exporter_linux(file_path, output_file, output_dir):
-    exporter_generic('exporter_linux', file_path, output_file, output_dir)
-
+def exporter_linux(input_file, output_file, existing_yaml_file=None):
+    exporter_generic('exporter_linux', input_file, output_file, existing_yaml_file)
 ######################################################  EXPORTER_BlackBox  #############################################################
 
-def exporter_blackbox(file_path, output_file, output_dir):
+def exporter_blackbox(input_file, output_file, existing_yaml_file=None):
     global default_listen_port
     global output_path
     yaml_output = OrderedDict([('exporter_blackbox', OrderedDict())])
@@ -68,7 +67,7 @@ def exporter_blackbox(file_path, output_file, output_dir):
         return
 
     df_filtered = filter_rows_by_exporter(df, 'exporter_blackbox')
-    output_path = os.path.join(output_dir, output_file)
+    output_path = os.path.join(output_file)
 
     # Initialize exporter_blackbox key in the YAML dictionary
     yaml_output['exporter_blackbox'] = {}
@@ -117,7 +116,7 @@ def exporter_blackbox(file_path, output_file, output_dir):
     output_path = os.path.join(output_dir, output_file)
     existing_yaml_output = load_existing_yaml(output_path)
 
-    process_exporter('exporter_blackbox', existing_yaml_output, new_entries, yaml_output, output_path)
+    process_exporter('exporter_blackbox', exporter_name, existing_yaml_output, yaml_output, output_path)
 
 ########################################################  EXPORTER_SSL  ##################################################################
 
