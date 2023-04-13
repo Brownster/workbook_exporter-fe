@@ -1,43 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Exporter Converter</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <meta charset="UTF-8">
+  <title>Exporter Converter</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 50px;
+    }
+    form {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 50px;
+    }
+    label {
+      font-size: 20px;
+    }
+    input[type="file"] {
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    select {
+      font-size: 16px;
+      margin: 10px 0;
+      min-width: 200px;
+      max-width: 400px;
+      height: 30px;
+    }
+    input[type="submit"] {
+      background-color: #4CAF50;
+      color: white;
+      font-size: 16px;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px 0;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    input[type="submit"]:hover {
+      background-color: #45a049;
+    }
+    .result {
+      max-width: 800px;
+      margin: 0 auto;
+      margin-top: 50px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .result a {
+      font-size: 20px;
+      margin-top: 10px;
+      display: block;
+    }
+  </style>
 </head>
 <body>
-<h1>Exporter Converter</h1>
-
-<form id="exporter-form" action="convert" method="post" enctype="multipart/form-data">
-    <div>
-        <label for="csv-file">Select a CSV file to convert:</label>
-        <input type="file" id="csv-file" name="csv-file">
+  <h1>Exporter Converter</h1>
+  <form method="POST" enctype="multipart/form-data" action="/">
+    <label for="file">Select CSV file to upload:</label>
+    <input type="file" name="file" id="file" accept=".csv">
+    <label for="exporter">Select Exporter:</label>
+    <select name="exporter" id="exporter" multiple>
+      <option value="exporter_blackbox">exporter_blackbox</option>
+      <option value="exporter_linux">exporter_linux</option>
+    </select>
+    <label for="listen_port">Listen Port:</label>
+    <input type="number" name="listen_port" id="listen_port" min="1024" max="65535" value="9090">
+    <input type="submit" value="Convert">
+  </form>
+  {% if result_file %}
+    <div class="result">
+      <h2>Download your converted YAML file:</h2>
+      <a href="{{ url_for('download', file_name=result_file) }}">Download {{ result_file }}</a>
     </div>
-    <div>
-        <label for="exporters">Select the exporters to convert:</label>
-        <select multiple id="exporters" name="exporters[]">
-            <option value="exporter_linux">Exporter Linux</option>
-            <option value="exporter_windows">Exporter Windows</option>
-            <option value="exporter_mac">Exporter Mac</option>
-            <option value="exporter_blackbox">Exporter Blackbox</option>
-        </select>
-    </div>
-    <div>
-        <button type="submit">Convert</button>
-    </div>
-</form>
-
-<script>
-    // Disable the form submission by default
-    $('#exporter-form').submit(function (event) {
-        event.preventDefault();
-    });
-
-    // Enable the form submission when the CSV file is selected
-    $('#csv-file').change(function () {
-        $('#exporter-form').off('submit').submit();
-    });
-</script>
-
+  {% endif %}
 </body>
 </html>
