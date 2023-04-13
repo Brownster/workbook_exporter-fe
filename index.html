@@ -4,84 +4,48 @@
   <meta charset="UTF-8">
   <title>Exporter Converter</title>
   <style>
-    body {
-      font-family: sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    h1 {
-      text-align: center;
-      margin-top: 50px;
-    }
-    form {
-      max-width: 800px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-top: 50px;
-    }
-    label {
-      font-size: 20px;
-    }
-    input[type="file"] {
-      margin: 10px 0;
-      font-size: 16px;
-    }
-    select {
-      font-size: 16px;
-      margin: 10px 0;
-      min-width: 200px;
-      max-width: 400px;
-      height: 30px;
-    }
-    input[type="submit"] {
-      background-color: #4CAF50;
-      color: white;
-      font-size: 16px;
-      border: none;
-      padding: 10px 20px;
-      margin: 10px 0;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    input[type="submit"]:hover {
-      background-color: #45a049;
-    }
-    .result {
-      max-width: 800px;
-      margin: 0 auto;
-      margin-top: 50px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .result a {
-      font-size: 20px;
-      margin-top: 10px;
-      display: block;
-    }
+    /* Your existing CSS styles */
   </style>
-</head>
-<body>
-  <h1>Exporter Converter</h1>
-  <form method="POST" enctype="multipart/form-data" action="/">
-    <label for="file">Select CSV file to upload:</label>
-    <input type="file" name="file" id="file" accept=".csv">
-    <label for="exporter">Select Exporter:</label>
-    <select name="exporter" id="exporter" multiple>
-      <option value="exporter_blackbox">exporter_blackbox</option>
-      <option value="exporter_linux">exporter_linux</option>
-    </select>
-    <label for="listen_port">Listen Port:</label>
-    <input type="number" name="listen_port" id="listen_port" min="1024" max="65535" value="9090">
-    <input type="submit" value="Convert">
-  </form>
-  {% if result_file %}
-    <div class="result">
-      <h2>Download your converted YAML file:</h2>
-      <a href="{{ url_for('download', file_name=result_file) }}">Download {{ result_file }}</a>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Exporter Converter</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  </head>
+  
+  <body>
+    <div class="container">
+      <h1 class="text-center mt-5">Exporter Converter</h1>
+      <form method="POST" enctype="multipart/form-data" action="/" class="mt-5">
+        <div class="form-group">
+          <label for="file">Select CSV file to upload:</label>
+          <input type="file" name="file" id="file" accept=".csv" class="form-control-file">
+        </div>
+        <div class="form-group">
+            <select name="exporters" multiple>
+                <option value="exporter_linux">Linux</option>
+                <option value="exporter_blackbox">Blackbox</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="listen_port">Default Listen Port:</label>
+          <input type="number" name="default_listen_port" id="default_listen_port" min="3000" max="8000" value="6000" class="form-control">
+        </div>
+        <div class="form-group">
+          <label for="existing_yaml">Existing Yaml:</label>
+          <input type="file" name="existing_yaml" id="existing_yaml" accept=".yaml" class="form-control-file">
+        </div>
+        <button type="submit" class="btn btn-primary">Convert</button>
+      </form>
+      {% if result_file %}
+        <div class="result mt-5">
+          <h2>Download your converted YAML file:</h2>
+          <a href="{{ url_for('download', file_name=result_file) }}" class="btn btn-success">Download {{ result_file }}</a>
+        </div>
+      {% endif %}
     </div>
-  {% endif %}
-</body>
+  </body>  
 </html>
