@@ -6,6 +6,43 @@
   <style>
     /* Your existing CSS styles */
   </style>
+  <style>
+    .flashes {
+      position: fixed;
+      top: 1em;
+      right: 1em;
+      z-index: 1000;
+    }
+  
+    .flash {
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+      color: #155724;
+      padding: 10px;
+      margin-bottom: 5px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+  </style>
+  
+  <script>
+    function fadeOutFlash(element, delay) {
+      setTimeout(function () {
+        element.style.opacity = "0";
+        setTimeout(function () {
+          element.parentNode.removeChild(element);
+        }, 1000);
+      }, delay);
+    }
+  
+    window.addEventListener("DOMContentLoaded", function () {
+      let flashMessages = document.querySelectorAll(".flash");
+      flashMessages.forEach(function (flash, index) {
+        fadeOutFlash(flash, (index + 1) * 5000);
+      });
+    });
+  </script>
+  
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -43,6 +80,32 @@
       {% if result_file %}
         <div class="result mt-5">
           <h2>Download your converted YAML file:</h2>
+          <a href="{{ url_for('download', file_name=result_file) }}" class="btn btn-success">Download {{ result_file }}</a>
+        </div>
+      {% endif %}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+  <ul class=flashes>
+  {% for category, message in messages %}
+    <li class="{{ category }}">{{ message }}</li>
+  {% endfor %}
+  </ul>
+{% endif %}
+{% endwith %}
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="flashes">
+    {% for message in messages %}
+      <div class="flash">{{ message }}</div>
+    {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+    </ul>
+  {% endif %}
+{% endwith %}
+  </body>  
+</html>
           <a href="{{ url_for('download', file_name=result_file) }}" class="btn btn-success">Download {{ result_file }}</a>
         </div>
       {% endif %}
