@@ -1183,10 +1183,15 @@ def finish_and_clean():
     return redirect(url_for('upload_file'))
 
 
+@app.route('/terminal')
+def terminal():
+    return render_template('terminal.html')
+
+
 @app.route('/download/<file_name>')
 def download(file_name):
     return send_from_directory(app.config['UPLOAD_FOLDER'], file_name, as_attachment=True)
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8001)
+    app.run(debug=True, port=8000)
