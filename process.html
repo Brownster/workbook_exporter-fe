@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process File</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        form {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <form action="" method="post">
+        <h1>Select Exporters</h1>
+        <label for="exporter_blackbox">Exporter Blackbox</label>
+        <input type="checkbox" id="exporter_blackbox" name="exporters" value="exporter_blackbox"><br>
+        <label for="exporter_linux">Exporter Linux</label>
+        <input type="checkbox" id="exporter_linux" name="exporters" value="exporter_linux"><br>
+        <!-- Add more checkboxes for other exporters -->
+        <label for="exporter_breeze">Exporter Breeze</label>
+        <input type="checkbox" id="exporter_breeze" name="exporters" value="exporter_breeze"><br>
+        <label for="exporter_sm">Exporter SM</label>
+        <input type="checkbox" id="exporter_sm" name="exporters" value="exporter_sm"><br>
+        <!-- Add remaining checkboxes for exporters -->
+        <br><br>
+        <input type="submit" value="Process">
+    </form>
+</body>
+</html>
