@@ -1,21 +1,71 @@
-Exporter Converter Web App
+Workbook Exporter
 
-This is a web-based application for converting CSV files into YAML format. The app is designed to work with CSV files that contain data about various exporters, including their name, operating system, and other details.
+Workbook Exporter is a Flask web application that processes CSV files, runs specified exporters on them, and generates output files based on the selected exporters. It also allows users to provide an existing YAML configuration file for processing.
+Features
 
-The application allows users to upload a CSV file, select one or more exporters, and convert the data into YAML format. The resulting YAML file can be downloaded by the user.
-How to Use
+    Upload CSV and optional YAML files
+    Select from a list of available exporters
+    Process the uploaded files with the chosen exporters
+    Display progress in a live-updating terminal window
+    Clean up temporary files and download the output
 
-To use this application, follow these steps:
+Prerequisites
 
-    Clone this repository to your local machine using git clone https://github.com/your_username/your_repo_name.git.
-    Install the required packages by running pip install -r requirements.txt in your terminal or command prompt.
-    Start the server by running python app.py.
-    Open your web browser and go to http://localhost:5000.
-    Upload a CSV file by clicking the "Choose File" button and selecting the file from your local machine.
-    Select one or more exporters from the dropdown menu.
-    Click the "Convert" button to convert the selected data into YAML format.
-    Click the "Download" button to download the resulting YAML file.
+    Python 3.7+
+    Flask
+    Werkzeug
 
-Deployment
+Installation
 
-This app can be easily deployed to a cloud-based platform such as AWS or Heroku. Simply create an account on your chosen platform, and follow their instructions for deploying a Python web application.
+    Clone the repository:
+
+    bash
+
+git clone https://github.com/your_username/workbook_exporter.git
+
+Change to the project directory:
+
+bash
+
+cd workbook_exporter
+
+Install the required packages:
+
+    pip install -r requirements.txt
+
+Usage
+
+    Run the Flask app:
+
+    arduino
+
+export FLASK_APP=app.py
+export FLASK_ENV=development
+flask run
+
+On Windows, replace export with set:
+
+arduino
+
+    set FLASK_APP=app.py
+    set FLASK_ENV=development
+    flask run
+
+    Open your browser and navigate to http://127.0.0.1:5000.
+
+    Upload a CSV file and, optionally, a YAML configuration file.
+
+    Choose the desired exporters from the list.
+
+    Click the "Process" button to run the selected exporters on the uploaded files.
+
+    Monitor the progress in the terminal window.
+
+    Once the processing is complete, click the "Finish and Clean" button to clean up temporary files and return to the initial file upload screen.
+
+Customizing Exporters
+
+You can add or modify exporters in the app.py file. To add a new exporter, define a function for the exporter, then include it in the list of available exporters in the process_file function.
+Contributing
+
+If you want to contribute to this project, please submit a pull request with your changes. We welcome any contributions, whether it's fixing bugs, adding new features, or updating documentation.
