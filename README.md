@@ -21,7 +21,7 @@ Installation
 
     bash
 
-git clone https://github.com/your_username/workbook_exporter.git
+git clone https://github.com/Brownster/workbook_exporter.git
 
 Change to the project directory:
 
