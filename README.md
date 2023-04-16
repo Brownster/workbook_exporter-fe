@@ -69,3 +69,5 @@ You can add or modify exporters in the app.py file. To add a new exporter, defin
 Contributing
 
 If you want to contribute to this project, please submit a pull request with your changes. We welcome any contributions, whether it's fixing bugs, adding new features, or updating documentation.
+![Screenshot from 2023-04-16 10-39-38](https://user-images.githubusercontent.com/6543166/232290325-768edd3a-5caf-4f71-b561-24b8b7eebdaf.png)
+![Screenshot from 2023-04-16 10-39-13](https://user-images.githubusercontent.com/6543166/232290330-8da3571e-e06a-4e51-8b01-8773ab11c2d0.png)
