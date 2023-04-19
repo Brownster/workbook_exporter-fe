@@ -1,5 +1,3 @@
-from flask import Flask, render_template, request, send_from_directory, flash
-import os
 import sys
 import tempfile
 import pandas as pd
@@ -8,23 +6,55 @@ from collections import OrderedDict
 from ruamel.yaml import YAML
 from werkzeug.utils import secure_filename
 import time
-            
-class StdoutRedirector(object):
-    def __init__(self, text_widget):
-        self.text_widget = text_widget
-
-    def write(self, str):
-        self.text_widget.insert(END, str)
-        self.text_widget.see(END)
-
-    def flush(self):
-        pass
+from flask import Flask, flash, request, redirect, url_for, render_template, send_from_directory, session
+import shutil
+import os
 
 global listen_port_var
 output_path = None
 selected_exporter_names = []
 
 #######################################################   START OF EXPORTER FUNCTIONS   ###################################################################
+
+############################################################ Exporter_WFODB  #####################################################################
+
+def exporter_wfodb(file_path, output_file, output_dir):
+    exporter_generic('exporter_wfodb', file_path, output_file, output_dir)
+
+############################################################ Exporter_PC5  #####################################################################
+
+def exporter_pc5(file_path, output_file, output_dir):
+    exporter_generic('exporter_pc5', file_path, output_file, output_dir)
+
+############################################################ EXPORTER_AMS  #####################################################################
+
+def exporter_ams(file_path, output_file, output_dir):
+    exporter_generic('exporter_ams', file_path, output_file, output_dir)
+
+############################################################ EXPORTER_MPP  #####################################################################
+
+def exporter_mpp(file_path, output_file, output_dir):
+    exporter_generic('exporter_mpp', file_path, output_file, output_dir)
+
+############################################################ EXPORTER_IQ  #####################################################################
+
+def exporter_iq(file_path, output_file, output_dir):
+    exporter_generic('exporter_iq', file_path, output_file, output_dir)
+
+############################################################ EXPORTER_IPO  #####################################################################
+
+def exporter_ipo(file_path, output_file, output_dir):
+    exporter_generic('exporter_ipo', file_path, output_file, output_dir)
+
+############################################################ EXPORTER_AAM #####################################################################
+
+def exporter_aam(file_path, output_file, output_dir):
+    exporter_generic('exporter_aam', file_path, output_file, output_dir)
+
+############################################################ EXPORTER_VOICEPORTAL #####################################################################
+
+def exporter_voiceportal(file_path, output_file, output_dir):
+    exporter_generic('exporter_voiceportal', file_path, output_file, output_dir)
 
 ############################################################ EXPORTER_CALLBACK #####################################################################
 
@@ -35,7 +65,6 @@ def exporter_callback(file_path, output_file, output_dir):
 
 def exporter_breeze(file_path, output_file, output_dir):
     exporter_generic('exporter_breeze', file_path, output_file, output_dir)
-
 
 ###############################################################  exporter_CMS  #############################################################
 
@@ -308,6 +337,10 @@ def exporter_avayasbc(file_path, output_file, output_dir):
         location = row['Location']
         country = row['Country']
 
+        snmp_version = row.get('snmp_version', 'v2')
+        snmp_user = row.get('snmp_user', None)
+        snmp_pass = row.get('snmp_password', None)
+
         if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
             continue
 
@@ -320,14 +353,23 @@ def exporter_avayasbc(file_path, output_file, output_dir):
             yaml_output[exporter_name][hostname][ip_address]['listen_port'] = 3601
             yaml_output[exporter_name][hostname][ip_address]['location'] = location
             yaml_output[exporter_name][hostname][ip_address]['country'] = country
-            yaml_output[exporter_name][hostname][ip_address]['username'] = 'ipcs'
+            
+            if snmp_version == 'v3' and snmp_user is not None:
+                yaml_output[exporter_name][hostname][ip_address]['username'] = snmp_user
+                yaml_output[exporter_name][hostname][ip_address]['privacy_protocol'] = 'aes'
+                yaml_output[exporter_name][hostname][ip_address]['privacy_passphrase'] = snmp_pass
+                yaml_output[exporter_name][hostname][ip_address]['auth_protocol'] = 'sha'
+                yaml_output[exporter_name][hostname][ip_address]['auth_passphrase'] = snmp_pass
+            else:
+                yaml_output[exporter_name][hostname][ip_address]['username'] = 'ipcs'
 
             new_entries.append(row)
 
     # Load existing YAML data
-    existing_yaml_output = load_existing_yaml(output_path)  
+    existing_yaml_output = load_existing_yaml(output_path)
     # Write the YAML data to a file, either appending to an existing file or creating a new file
     process_exporter('exporter_avayasbc', existing_yaml_output, new_entries, yaml_output, output_path)
+
 
 ###########################################   exporter_GATEWAY   ####################################################################
 
@@ -368,25 +410,36 @@ def exporter_gateway(file_path, output_file, output_dir):
         if ip_address not in yaml_output[exporter_name][hostname]:
             yaml_output[exporter_name][hostname][ip_address] = {}
 
-        if pd.isna(row['App-Listen-Port']):
-            yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(default_listen_port.get())
-        else:
-            yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
+        # Use default_listen_port if 'App-Listen-Port' is not available
+        listen_port = row.get('App-Listen-Port', default_listen_port)
+        if listen_port == default_listen_port:
+            default_listen_port += 1
+        yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
 
         yaml_output[exporter_name][hostname][ip_address]['location'] = location
         yaml_output[exporter_name][hostname][ip_address]['country'] = country
-        yaml_output[exporter_name][hostname][ip_address]['snmp_version'] = 2
+        
+        snmp_version = row.get('snmp_version', 2)
+        yaml_output[exporter_name][hostname][ip_address]['snmp_version'] = snmp_version
 
-        if 'comm_string' in df.columns and not pd.isna(row['comm_string']):
-            yaml_output[exporter_name][hostname][ip_address]['community'] = row['comm_string']
+        if snmp_version == 3:
+            yaml_output[exporter_name][hostname][ip_address]['username'] = row['snmp_user']
+            yaml_output[exporter_name][hostname][ip_address]['privacy_protocol'] = 'aes'
+            yaml_output[exporter_name][hostname][ip_address]['privacy_passphrase'] = row.get('snmp_password', 'default_passphrase')
+            yaml_output[exporter_name][hostname][ip_address]['auth_protocol'] = 'sha'
+            yaml_output[exporter_name][hostname][ip_address]['auth_passphrase'] = row.get('snmp_password', 'default_passphrase')
         else:
-            yaml_output[exporter_name][hostname][ip_address]['community'] = 'ENC'
+            if 'comm_string' in df.columns and not pd.isna(row['comm_string']):
+                yaml_output[exporter_name][hostname][ip_address]['community'] = row['comm_string']
+            else:
+                yaml_output[exporter_name][hostname][ip_address]['community'] = 'ENC'
 
         new_entries.append(row)
 
     existing_yaml_output = load_existing_yaml(output_path)  # Add this line to load existing YAML data
     # Write the YAML data to a file, either appending to an existing file or creating a new file
     process_exporter('exporter_gateway', existing_yaml_output, new_entries, yaml_output, output_path)
+
 
 #######################################################  EXPORTER_TCTI       ############################################################
 
@@ -567,12 +620,12 @@ def exporter_kafka(file_path, output_file, output_dir):
         log("No rows matching exporter_kafka condition found")
         return
 
-    # Initialize exporter_genesyscloud key in the YAML dictionary
+    # Initialize exporter_kafka key in the YAML dictionary
     yaml_output = OrderedDict([('exporter_kafka', OrderedDict())])
 
     # Iterate over rows in filtered dataframe
     new_entries = []
-    for index, row in df.iterrows():
+    for index, row in df_filtered.iterrows():
         hostname = row['FQDN']
         ip_address = row['IP Address']
         location = row['Location']
@@ -586,7 +639,11 @@ def exporter_kafka(file_path, output_file, output_dir):
             yaml_output['exporter_kafka'][hostname] = {}
 
         yaml_output['exporter_kafka'][hostname]['ip_address'] = ip_address
-        yaml_output['exporter_kafka'][hostname]['listen_port'] = int(row['App-Listen-Port'])
+        # Use default_listen_port if 'App-Listen-Port' is not available
+        listen_port = row.get('App-Listen-Port', default_listen_port)
+        if listen_port == default_listen_port:
+            default_listen_port += 1
+        yaml_output[exporter_kafka][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
         yaml_output['exporter_kafka'][hostname]['location'] = location
         yaml_output['exporter_kafka'][hostname]['country'] = country
         yaml_output['exporter_kafka'][hostname]['kafka_port'] = 9092
@@ -658,7 +715,7 @@ def exporter_genesyscloud(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
     new_entries = []
-    sorted_yaml_output =[]
+    sorted_yaml_output = []
     try:
         log("Exporter Genesys Cloud called")
 
@@ -680,24 +737,23 @@ def exporter_genesyscloud(file_path, output_file, output_dir):
 
     # Iterate over rows in filtered dataframe
     new_entries = []
-    for index, row in df.iterrows():
+    for index, row in df_filtered.iterrows():
         hostname = row['FQDN']
-        listen_port = row['App-Listen-Port']
+        listen_port = int(row['App-Listen-Port']) 
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
         comm_string = row.get('comm_string', 'public')
 
-
         if ip_exists_in_yaml('exporter_genesyscloud', ip_address, output_path=output_path):
             continue
 
+        extra_args = (" --client.managed --billing.enabled --billing.frequency30m --usage.enabled --usage.frequency12h --client.first-day-of-month22 --mos.enabled --mos.bandceilingcritical2.59999 --mos.bandceilingbad3.59999--mos.bandceilingwarning3.09999 --mos.bandceilinggood3.99999")
+
+
         yaml_output['exporter_genesyscloud'][hostname] = OrderedDict([
             ('listen_port', listen_port),
-            ('extra_args', (" --client.managed  --billing.enabled --billing.frequency 30m --usage.enabled "
-                          "--usage.frequency 12h --client.first-day-of-month 22 --mos.enabled "
-                          "--mos.bandceilingcritical 2.59999 --mos.bandceilingbad 3.59999 "
-                          "--mos.bandceilingwarning 3.09999 --mos.bandceilinggood 3.99999")),
+            ('extra_args', extra_args),
             ('client_id', 'ENC[PKCS7...]'),
             ('client_secret', 'ENC[PKCS7...]'),
             ('client_basepath', 'https://api.mypurecloud.ie'),
@@ -710,11 +766,11 @@ def exporter_genesyscloud(file_path, output_file, output_dir):
         new_entries.append(row)
 
     # Add this line to load existing YAML data
-    existing_yaml_output = load_existing_yaml(output_path)  
-    # Sort the YAML data by hostname before writing it to the output file
-    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_genesyscloud'].items(), key=lambda x: x[0]))
+    existing_yaml_output = load_existing_yaml(output_path)
+
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter('exporter_genesyscloud', existing_yaml_output, new_entries, yaml_output, output_path)
+
 
 ################################################################### EXPORTER_ACM #####################################################################
 
@@ -822,7 +878,11 @@ def exporter_weblm(file_path, output_file, output_dir):
             continue
 
         yaml_output['exporter_weblm'][hostname]['ip_address'] = ip_address
-        yaml_output['exporter_weblm'][hostname]['listen_port'] = int(listen_port) if not pd.isna(listen_port) else int(default_listen_port)
+        # Use default_listen_port if 'App-Listen-Port' is not available
+        listen_port = row.get('App-Listen-Port', default_listen_port)
+        if listen_port == default_listen_port:
+            default_listen_port += 1
+        yaml_output[exporter_weblm][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
         yaml_output['exporter_weblm'][hostname]['location'] = location
         yaml_output['exporter_weblm'][hostname]['country'] = country
         yaml_output['exporter_weblm'][hostname]['data_path'] = '/opt/Avaya/tomcat/webapps/WebLM/data/'
@@ -835,6 +895,527 @@ def exporter_weblm(file_path, output_file, output_dir):
     existing_yaml_output = load_existing_yaml(output_path)  
 
     process_exporter('exporter_weblm', existing_yaml_output, new_entries, yaml_output, output_path)
+
+
+
+############################################################## Exporter Network #####################################################################
+
+def exporter_network(file_path, output_file, output_dir):
+    global default_listen_port
+    global output_path
+
+    try:
+        log("Exporter Network called")
+
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        log(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_network')
+    output_path = os.path.join(output_dir, output_file)
+
+    # Initialize exporter_network key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_network', OrderedDict())])
+
+    # Iterate over rows in filtered dataframe
+    new_entries = []
+    for index, row in df_filtered.iterrows():
+        exporter_name = 'exporter_network'
+        hostname = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+
+        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
+            continue
+
+        if hostname not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][hostname] = {}
+
+        if ip_address not in yaml_output[exporter_name][hostname]:
+            yaml_output[exporter_name][hostname][ip_address] = {}
+
+        # Use default_listen_port if 'App-Listen-Port' is not available
+        listen_port = row.get('App-Listen-Port', default_listen_port)
+        if listen_port == default_listen_port:
+            default_listen_port += 1
+        yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
+
+        yaml_output[exporter_name][hostname][ip_address]['location'] = location
+        yaml_output[exporter_name][hostname][ip_address]['country'] = country
+        yaml_output[exporter_name][hostname][ip_address]['snmp_version'] = 3
+        yaml_output[exporter_name][hostname][ip_address]['username'] = row['snmp_user']
+        yaml_output[exporter_name][hostname][ip_address]['privacy_protocol'] = 'aes'
+        yaml_output[exporter_name][hostname][ip_address]['privacy_passphrase'] = row.get('snmp_password', 'default_passphrase')
+        yaml_output[exporter_name][hostname][ip_address]['auth_protocol'] = 'sha'
+        yaml_output[exporter_name][hostname][ip_address]['auth_passphrase'] = row.get('snmp_password', 'default_passphrase')
+
+        new_entries.append(row)
+
+    existing_yaml_output = load_existing_yaml(output_path)  # Add this line to load existing YAML data
+    # Write the YAML data to a file, either appending to an existing file or creating a new file
+    process_exporter('exporter_network', existing_yaml_output, new_entries, yaml_output, output_path)
+
+
+
+############################################################### Exporter AAEP #####################################################################################
+
+def exporter_aaep(file_path, output_file, output_dir):
+    global default_listen_port
+    global output_path
+
+    try:
+        log("Exporter AAEP called")
+
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        log(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_aaep')
+    output_path = os.path.join(output_dir, output_file)
+
+    # Initialize exporter_aaep key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_aaep', OrderedDict())])
+
+    # Iterate over rows in filtered dataframe
+    new_entries = []
+    for index, row in df_filtered.iterrows():
+        exporter_name = 'exporter_aaep'
+        hostname = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+        snmp_version = row.get('snmp_version', '2')
+        snmp_user = row.get('snmp_user', '')
+
+        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
+            continue
+
+        if hostname not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][hostname] = {}
+
+        if ip_address not in yaml_output[exporter_name][hostname]:
+            yaml_output[exporter_name][hostname][ip_address] = {}
+
+        # Use default_listen_port if 'App-Listen-Port' is not available
+        listen_port = row.get('App-Listen-Port', default_listen_port)
+        if listen_port == default_listen_port:
+            default_listen_port += 1
+        yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
+
+        yaml_output[exporter_name][hostname][ip_address]['location'] = location
+        yaml_output[exporter_name][hostname][ip_address]['country'] = country
+        yaml_output[exporter_name][hostname][ip_address]['snmp_version'] = snmp_version
+
+        if snmp_version == '3':
+            yaml_output[exporter_name][hostname][ip_address]['username'] = snmp_user
+            yaml_output[exporter_name][hostname][ip_address]['privacy_protocol'] = 'aes'
+            yaml_output[exporter_name][hostname][ip_address]['privacy_passphrase'] = 'Sab10maas'
+            yaml_output[exporter_name][hostname][ip_address]['auth_protocol'] = 'sha'
+            yaml_output[exporter_name][hostname][ip_address]['auth_passphrase'] = 'Sab10maas'
+        else:
+            if 'comm_string' in df.columns and not pd.isna(row['comm_string']):
+                yaml_output[exporter_name][hostname][ip_address]['community'] = row['comm_string']
+            else:
+                yaml_output[exporter_name][hostname][ip_address]['community'] = 'ENC'
+
+        new_entries.append(row)
+
+    existing_yaml_output = load_existing_yaml(output_path)
+    # Write the YAML data to a file, either appending to an existing file or creating a new file
+    process_exporter('exporter_aaep', existing_yaml_output, new_entries, yaml_output, output_path)
+
+
+
+############################################################### Exporter PfSense  ##########################################################################
+
+def exporter_pfsense(file_path, output_file, output_dir):
+    global default_listen_port
+    global output_path
+
+    try:
+        log("Exporter pfSense called")
+
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        log(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_pfsense')
+    output_path = os.path.join(output_dir, output_file)
+
+    # Initialize exporter_pfsense key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_pfsense', OrderedDict())])
+
+    # Iterate over rows in filtered dataframe
+    new_entries = []
+    for index, row in df_filtered.iterrows():
+        exporter_name = 'exporter_pfsense'
+        hostname = row['Hostnames']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+        snmp_version = row.get('snmp_version', '2')
+        snmp_user = row.get('snmp_user', '')
+
+        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
+            continue
+
+        if hostname not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][hostname] = {}
+
+        if ip_address not in yaml_output[exporter_name][hostname]:
+            yaml_output[exporter_name][hostname][ip_address] = {}
+
+        # Use default_listen_port if 'App-Listen-Port' is not available
+        listen_port = row.get('App-Listen-Port', default_listen_port)
+        if listen_port == default_listen_port:
+            default_listen_port += 1
+        yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
+
+        yaml_output[exporter_name][hostname][ip_address]['location'] = location
+        yaml_output[exporter_name][hostname][ip_address]['country'] = country
+        yaml_output[exporter_name][hostname][ip_address]['snmp_version'] = snmp_version
+
+        if snmp_version == '3':
+            yaml_output[exporter_name][hostname][ip_address]['username'] = snmp_user
+            yaml_output[exporter_name][hostname][ip_address]['privacy_protocol'] = 'aes'
+            yaml_output[exporter_name][hostname][ip_address]['privacy_passphrase'] = 'Sab10maas'
+            yaml_output[exporter_name][hostname][ip_address]['auth_protocol'] = 'sha'
+            yaml_output[exporter_name][hostname][ip_address]['auth_passphrase'] = 'Sab10maas'
+        else:
+            if 'comm_string' in df.columns and not pd.isna(row['comm_string']):
+                yaml_output[exporter_name][hostname][ip_address]['community'] = row['comm_string']
+            else:
+                yaml_output[exporter_name][hostname][ip_address]['community'] = 'ENC'
+
+        new_entries.append(row)
+
+    existing_yaml_output = load_existing_yaml(output_path)
+    # Write the YAML data to a file, either appending to an existing file or creating a new file
+    process_exporter('exporter_pfsense', existing_yaml_output, new_entries, yaml_output, output_path)
+
+
+
+################################################################ Exporter AIC  ################################################################
+
+def exporter_aic(file_path, output_file, output_dir):
+    global default_listen_port
+    global output_path
+
+    try:
+        log("Exporter AIC called")
+
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        log(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_aic')
+    output_path = os.path.join(output_dir, output_file)
+
+    # Initialize exporter_aic key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_aic', OrderedDict())])
+
+    # Iterate over rows in filtered dataframe
+    new_entries = []
+    for index, row in df_filtered.iterrows():
+        exporter_name = 'exporter_aic'
+        fqdn = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+
+        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
+            continue
+
+        if fqdn not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][fqdn] = {}
+
+        yaml_output[exporter_name][fqdn]['ip_address'] = ip_address
+
+        # Use default_listen_port if 'App-Listen-Port' is not available
+        listen_port = row.get('App-Listen-Port', default_listen_port)
+        if listen_port == default_listen_port:
+            default_listen_port += 1
+
+        yaml_output[exporter_name][fqdn]['listen_port'] = int(listen_port)
+        yaml_output[exporter_name][fqdn]['location'] = location
+        yaml_output[exporter_name][fqdn]['country'] = country
+
+        new_entries.append(row)
+
+    existing_yaml_output = load_existing_yaml(output_path)
+
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_aic', existing_yaml_output, new_entries, yaml_output, output_path)
+
+
+################################################################# EXPORTER OCEANA MONITOR  ###############################################################
+
+def exporter_oceanamonitor(file_path, output_file, output_dir):
+    global default_listen_port
+    global output_path
+
+    try:
+        log("Exporter OceanaMonitor called")
+
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        log(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_oceanamonitor')
+    output_path = os.path.join(output_dir, output_file)
+
+    # Initialize exporter_oceanamonitor key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_oceanamonitor', OrderedDict())])
+
+    # Iterate over rows in filtered dataframe
+    new_entries = []
+    for index, row in df_filtered.iterrows():
+        exporter_name = 'exporter_oceanamonitor'
+        fqdn = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+
+        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
+            continue
+
+        if fqdn not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][fqdn] = {}
+
+        yaml_output[exporter_name][fqdn]['ip_address'] = ip_address
+
+        # Use default_listen_port if 'App-Listen-Port' is not available
+        listen_port = row.get('App-Listen-Port', default_listen_port)
+        if listen_port == default_listen_port:
+            default_listen_port += 1
+
+        yaml_output[exporter_name][fqdn]['listen_port'] = int(listen_port)
+        yaml_output[exporter_name][fqdn]['location'] = location
+        yaml_output[exporter_name][fqdn]['country'] = country
+
+        new_entries.append(row)
+
+    existing_yaml_output = load_existing_yaml(output_path)
+
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_oceanamonitor', existing_yaml_output, new_entries, yaml_output, output_path)
+
+
+############################################################## EXPORTER AUDIO CODE SBC ######################################################################
+
+def exporter_audiocodesbc(file_path, output_file, output_dir):
+    global default_listen_port
+    global output_path
+
+    try:
+        log("Exporter AudioCodesBC called")
+
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        log(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_audiocodesbc')
+    output_path = os.path.join(output_dir, output_file)
+
+    # Initialize exporter_audiocodesbc key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_audiocodesbc', OrderedDict())])
+
+    # Iterate over rows in filtered dataframe
+    new_entries = []
+    for index, row in df_filtered.iterrows():
+        exporter_name = 'exporter_audiocodesbc'
+        hostname = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+        snmp_version = row.get('snmp_version', 2)
+
+        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
+            continue
+
+        if hostname not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][hostname] = {}
+
+        yaml_output[exporter_name][hostname]['ip_address'] = ip_address
+        yaml_output[exporter_name][hostname]['listen_port'] = int(row.get('App-Listen-Port', default_listen_port.get()))
+        yaml_output[exporter_name][hostname]['location'] = location
+        yaml_output[exporter_name][hostname]['country'] = country
+        yaml_output[exporter_name][hostname]['snmp_version'] = snmp_version
+
+        if 'comm_string' in df.columns and not pd.isna(row['comm_string']):
+            yaml_output[exporter_name][hostname]['community'] = row['comm_string']
+        else:
+            yaml_output[exporter_name][hostname]['community'] = 'ENC'
+
+        new_entries.append(row)
+
+    existing_yaml_output = load_existing_yaml(output_path)
+
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_audiocodesbc', existing_yaml_output, new_entries, yaml_output, output_path)
+
+
+########################################################### EXPORTER BAAS ##############################################################################
+
+def exporter_baas(file_path, output_file, output_dir):
+    global default_listen_port
+
+    try:
+        log("Exporter BaaS called")
+
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        log(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_baas')
+    output_path = os.path.join(output_dir, output_file)
+
+    # Initialize exporter_baas key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_baas', OrderedDict())])
+
+    # Iterate over rows in filtered dataframe
+    new_entries = []
+    for index, row in df_filtered.iterrows():
+        exporter_name = 'exporter_baas'
+        fqdn = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+
+        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
+            continue
+
+        if fqdn not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][fqdn] = {}
+
+        yaml_output[exporter_name][fqdn]['ip_address'] = ip_address
+
+        # Use default_listen_port if 'App-Listen-Port' is not available
+        listen_port = row.get('App-Listen-Port', default_listen_port)
+        if listen_port == default_listen_port:
+            default_listen_port += 1
+
+        yaml_output[exporter_name][fqdn]['listen_port'] = int(listen_port)
+        yaml_output[exporter_name][fqdn]['location'] = location
+        yaml_output[exporter_name][fqdn]['country'] = country
+        yaml_output[exporter_name][fqdn]['username'] = 'maas'
+        yaml_output[exporter_name][fqdn]['extra_args'] = " --backup.timeout=30s --backup.frequency=1m "
+
+        ssh_password_present = 'ssh_password' in row
+        if ssh_password_present and not pd.isna(row['ssh_password']):
+            yaml_output[exporter_name][fqdn]['password'] = row['ssh_password']
+        else:
+            yaml_output[exporter_name][fqdn]['password'] = 'ENC'
+
+        yaml_output[exporter_name][fqdn]['bucket'] = 's3://<s2bucket>'
+
+        new_entries.append(row)
+
+    existing_yaml_output = load_existing_yaml(output_path)
+
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_baas', existing_yaml_output, new_entries, yaml_output, output_path)
+
+
+############################################################# Exporter Redis ###################################################################################
+
+def exporter_redis(file_path, output_file, output_dir):
+    global default_listen_port
+
+    try:
+        log("Exporter Redis called")
+
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        log(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_redis')
+    output_path = os.path.join(output_dir, output_file)
+
+    # Initialize exporter_redis key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_redis', OrderedDict())])
+
+    # Iterate over rows in filtered dataframe
+    new_entries = []
+    for index, row in df_filtered.iterrows():
+        exporter_name = 'exporter_redis'
+        fqdn = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+
+        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
+            continue
+
+        if fqdn not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][fqdn] = {}
+
+        yaml_output[exporter_name][fqdn]['ip_address'] = ip_address
+
+        # Use default_listen_port if 'App-Listen-Port' is not available
+        listen_port = row.get('App-Listen-Port', default_listen_port)
+        if listen_port == default_listen_port:
+            default_listen_port += 1
+
+        yaml_output[exporter_name][fqdn]['listen_port'] = int(listen_port)
+        yaml_output[exporter_name][fqdn]['location'] = location
+        yaml_output[exporter_name][fqdn]['country'] = country
+        yaml_output[exporter_name][fqdn]['debug'] = True
+        yaml_output[exporter_name][fqdn]['application'] = "Verint Mobile Gateway"
+
+        new_entries.append(row)
+
+    existing_yaml_output = load_existing_yaml(output_path)
+
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_redis', existing_yaml_output, new_entries, yaml_output, output_path)
+
+
+################################################# ADD SNMP ARGS ########################################
+
+def add_snmp_args(file_path, output_file):
+    global output_path
+    output_dir = tempfile.gettempdir()
+    output_path = os.path.join(output_dir, output_file)
+
+    try:
+        log("Add SNMP Args called")
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        log(f"Error: {e}")
+        return
+
+    snmp_args_string = 'extra_args: --snmp-3 --snmp-auth aes --snmpdetails --here'
+
+    # Add this line to load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)
+
+    # Insert the new SNMP args string at the top of the YAML file
+    with open(output_path, 'r') as file:
+        original_content = file.read()
+
+    with open(output_path, 'w') as file:
+        file.write(snmp_args_string + '\n' + original_content)
+
+    log(f"SNMP Args added to the top of the file {output_path}")
 
 ######################################################## exporter_generic ###############################################################################
 
@@ -864,10 +1445,11 @@ def exporter_generic(exporter_name, file_path, output_file, output_dir):
     # Write the YAML data to a file, either updating the existing file or creating a new file
     process_exporter(exporter_name, existing_yaml_output, new_entries, yaml_output, output_path)
 
+
 ###########################################################   process_row_generic   ###################################################################
 
 def process_row_generic(exporter_name, row, yaml_output, default_listen_port):
-    hostname = row['Hostnames']
+    hostname = row['FQDN']
     ip_address = row['IP Address']
     location = row['Location']
     country = row['Country']
@@ -884,7 +1466,7 @@ def process_row_generic(exporter_name, row, yaml_output, default_listen_port):
         default_listen_port += 1
 
     yaml_output[exporter_name][hostname]['ip_address'] = ip_address
-    yaml_output[exporter_name][hostname]['listen_port'] = listen_port
+    yaml_output[exporter_name][hostname]['listen_port'] = int(listen_port)
     yaml_output[exporter_name][hostname]['location'] = location
     yaml_output[exporter_name][hostname]['country'] = country
 
@@ -921,7 +1503,7 @@ def read_input_file(file_path):
     file_extension = os.path.splitext(file_path)[1]
     if file_extension == '.csv':
         # Read CSV file into pandas
-        df = pd.read_csv(file_path, skiprows=7)
+        df = pd.read_csv(file_path, skiprows=7, low_memory=False)
     elif file_extension in ['.xlsx', '.xls']:
         # Read Excel file into pandas
         df = pd.read_excel(file_path, sheet_name='Sheet2', skiprows=range(0, 6))
@@ -1062,17 +1644,44 @@ def run_exporters(selected_exporter_names, output_file, output_dir, file_path):
                 exporter_genesyscloud(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_tcti':
                 exporter_tcti(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_network':
+                exporter_network(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_aaep':
+                exporter_aaep(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_pfsense':
+                exporter_pfsense(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_aic':
+                exporter_aic(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_voiceportal':
+                exporter_voiceportal(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_aam':
+                exporter_aam(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_ipo':
+                exporter_ipo(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_iq':
+                exporter_iq(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_mpp':
+                exporter_mpp(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_ams':
+                exporter_ams(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_pc5':
+                exporter_pc5(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_wfodb':
+                exporter_wfodb(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_audiocodesbc':
+                exporter_audiocodesbc(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_baas':
+                exporter_baas(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_redis':
+                exporter_redis(file_path, output_file, output_dir)
+            elif exporter_name == 'add_snmp_args':
+                add_snmp_args(file_path, output_file)
 
 
     # Show success message
     log('Success', 'Exporters completed')
 
 default_listen_port = [] # Replace 9000 with the desired default port number
-
-from flask import Flask, flash, request, redirect, url_for, render_template, send_from_directory, session
-from werkzeug.utils import secure_filename
-import os
-import shutil
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = '/tmp/'
@@ -1192,6 +1801,7 @@ def terminal():
 def download(file_name):
     return send_from_directory(app.config['UPLOAD_FOLDER'], file_name, as_attachment=True)
 
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8000)
+    app.run(debug=False, host='0.0.0.0', port=8000)
