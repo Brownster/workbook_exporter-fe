@@ -37,6 +37,8 @@ Usage
 
     Run the Flask app:
 
+to run gunicorn -w 4 -b 0.0.0.0:8000 workbook_exporter-fe5:app
+
     arduino
 
 export FLASK_APP=app.py
