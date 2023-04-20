@@ -151,19 +151,12 @@ def exporter_blackbox(file_path, output_file, output_dir):
 ########################################################  EXPORTER_SSL  ##################################################################
 
 def exporter_ssl(file_path, output_file, output_dir):
+    yaml_output = OrderedDict([('exporter_ssl', OrderedDict())])
     try:
         log("Exporter SSL called")
 
-        # Check if file is CSV or Excel
-        file_extension = os.path.splitext(file_path)[1]
-        if file_extension == '.csv':
-            # Read CSV file into pandas
-            df = pd.read_csv(file_path, skiprows=7)
-        elif file_extension in ['.xlsx', '.xls']:
-            # Read Excel file into pandas
-            df = pd.read_excel(file_path, sheet_name='Sheet2', skiprows=7)
-        else:
-            raise ValueError("Invalid file type. Only CSV and Excel files are supported.")
+        df = read_input_file(file_path)
+
     except Exception as e:
         log(f"Error: {e}")
         return
@@ -348,20 +341,24 @@ def exporter_avayasbc(file_path, output_file, output_dir):
             yaml_output[exporter_name][hostname] = {}
 
         if ip_address not in yaml_output[exporter_name][hostname]:
-            yaml_output[exporter_name][hostname][ip_address] = {}
+            yaml_output[exporter_name][hostname]= {}
 
-            yaml_output[exporter_name][hostname][ip_address]['listen_port'] = 3601
-            yaml_output[exporter_name][hostname][ip_address]['location'] = location
-            yaml_output[exporter_name][hostname][ip_address]['country'] = country
+            listen_port = row.get('App-Listen-Port', default_listen_port)
+            if listen_port == default_listen_port:
+                 default_listen_port += 1
+            yaml_output[exporter_name][hostname]['ip_address'] = ip_address
+            yaml_output[exporter_name][hostname]['listen_port'] = int(row['App-Listen-Port'])
+            yaml_output[exporter_name][hostname]['location'] = location
+            yaml_output[exporter_name][hostname]['country'] = country
             
             if snmp_version == 'v3' and snmp_user is not None:
-                yaml_output[exporter_name][hostname][ip_address]['username'] = snmp_user
-                yaml_output[exporter_name][hostname][ip_address]['privacy_protocol'] = 'aes'
-                yaml_output[exporter_name][hostname][ip_address]['privacy_passphrase'] = snmp_pass
-                yaml_output[exporter_name][hostname][ip_address]['auth_protocol'] = 'sha'
-                yaml_output[exporter_name][hostname][ip_address]['auth_passphrase'] = snmp_pass
+                yaml_output[exporter_name][hostname]['username'] = snmp_user
+                yaml_output[exporter_name][hostname]['privacy_protocol'] = 'aes'
+                yaml_output[exporter_name][hostname]['privacy_passphrase'] = snmp_pass
+                yaml_output[exporter_name][hostname]['auth_protocol'] = 'sha'
+                yaml_output[exporter_name][hostname]['auth_passphrase'] = snmp_pass
             else:
-                yaml_output[exporter_name][hostname][ip_address]['username'] = 'ipcs'
+                yaml_output[exporter_name][hostname]['username'] = 'ipcs'
 
             new_entries.append(row)
 
@@ -396,7 +393,7 @@ def exporter_gateway(file_path, output_file, output_dir):
     new_entries = []
     for index, row in df_filtered.iterrows():
         exporter_name = 'exporter_gateway'
-        hostname = row['Hostnames']
+        hostname = row['FQDN']
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
@@ -408,31 +405,32 @@ def exporter_gateway(file_path, output_file, output_dir):
             yaml_output[exporter_name][hostname] = {}
 
         if ip_address not in yaml_output[exporter_name][hostname]:
-            yaml_output[exporter_name][hostname][ip_address] = {}
+            yaml_output[exporter_name][hostname] = {}
 
         # Use default_listen_port if 'App-Listen-Port' is not available
         listen_port = row.get('App-Listen-Port', default_listen_port)
         if listen_port == default_listen_port:
             default_listen_port += 1
-        yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
+        yaml_output[exporter_name][hostname]['ip_address'] = ip_address
+        yaml_output[exporter_name][hostname]['listen_port'] = int(row['App-Listen-Port'])
 
-        yaml_output[exporter_name][hostname][ip_address]['location'] = location
-        yaml_output[exporter_name][hostname][ip_address]['country'] = country
+        yaml_output[exporter_name][hostname]['location'] = location
+        yaml_output[exporter_name][hostname]['country'] = country
         
         snmp_version = row.get('snmp_version', 2)
-        yaml_output[exporter_name][hostname][ip_address]['snmp_version'] = snmp_version
+        yaml_output[exporter_name][hostname]['snmp_version'] = snmp_version
 
         if snmp_version == 3:
-            yaml_output[exporter_name][hostname][ip_address]['username'] = row['snmp_user']
-            yaml_output[exporter_name][hostname][ip_address]['privacy_protocol'] = 'aes'
-            yaml_output[exporter_name][hostname][ip_address]['privacy_passphrase'] = row.get('snmp_password', 'default_passphrase')
-            yaml_output[exporter_name][hostname][ip_address]['auth_protocol'] = 'sha'
-            yaml_output[exporter_name][hostname][ip_address]['auth_passphrase'] = row.get('snmp_password', 'default_passphrase')
+            yaml_output[exporter_name][hostname]['username'] = row['snmp_user']
+            yaml_output[exporter_name][hostname]['privacy_protocol'] = 'aes'
+            yaml_output[exporter_name][hostname]['privacy_passphrase'] = row.get('snmp_password', 'default_passphrase')
+            yaml_output[exporter_name][hostname]['auth_protocol'] = 'sha'
+            yaml_output[exporter_name][hostname]['auth_passphrase'] = row.get('snmp_password', 'default_passphrase')
         else:
             if 'comm_string' in df.columns and not pd.isna(row['comm_string']):
-                yaml_output[exporter_name][hostname][ip_address]['community'] = row['comm_string']
+                yaml_output[exporter_name][hostname]['community'] = row['comm_string']
             else:
-                yaml_output[exporter_name][hostname][ip_address]['community'] = 'ENC'
+                yaml_output[exporter_name][hostname]['community'] = 'ENC'
 
         new_entries.append(row)
 
@@ -935,22 +933,23 @@ def exporter_network(file_path, output_file, output_dir):
             yaml_output[exporter_name][hostname] = {}
 
         if ip_address not in yaml_output[exporter_name][hostname]:
-            yaml_output[exporter_name][hostname][ip_address] = {}
+            yaml_output[exporter_name][hostname] = {}
 
         # Use default_listen_port if 'App-Listen-Port' is not available
         listen_port = row.get('App-Listen-Port', default_listen_port)
         if listen_port == default_listen_port:
             default_listen_port += 1
-        yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
+        yaml_output[exporter_name][hostname]['ip_address'] = ip_address
+        yaml_output[exporter_name][hostname]['listen_port'] = int(row['App-Listen-Port'])
 
-        yaml_output[exporter_name][hostname][ip_address]['location'] = location
-        yaml_output[exporter_name][hostname][ip_address]['country'] = country
-        yaml_output[exporter_name][hostname][ip_address]['snmp_version'] = 3
-        yaml_output[exporter_name][hostname][ip_address]['username'] = row['snmp_user']
-        yaml_output[exporter_name][hostname][ip_address]['privacy_protocol'] = 'aes'
-        yaml_output[exporter_name][hostname][ip_address]['privacy_passphrase'] = row.get('snmp_password', 'default_passphrase')
-        yaml_output[exporter_name][hostname][ip_address]['auth_protocol'] = 'sha'
-        yaml_output[exporter_name][hostname][ip_address]['auth_passphrase'] = row.get('snmp_password', 'default_passphrase')
+        yaml_output[exporter_name][hostname]['location'] = location
+        yaml_output[exporter_name][hostname]['country'] = country
+        yaml_output[exporter_name][hostname]['snmp_version'] = 3
+        yaml_output[exporter_name][hostname]['username'] = row['snmp_user']
+        yaml_output[exporter_name][hostname]['privacy_protocol'] = 'aes'
+        yaml_output[exporter_name][hostname]['privacy_passphrase'] = row.get('snmp_password', 'default_passphrase')
+        yaml_output[exporter_name][hostname]['auth_protocol'] = 'sha'
+        yaml_output[exporter_name][hostname]['auth_passphrase'] = row.get('snmp_password', 'default_passphrase')
 
         new_entries.append(row)
 
@@ -999,24 +998,25 @@ def exporter_aaep(file_path, output_file, output_dir):
             yaml_output[exporter_name][hostname] = {}
 
         if ip_address not in yaml_output[exporter_name][hostname]:
-            yaml_output[exporter_name][hostname][ip_address] = {}
+            yaml_output[exporter_name][hostname] = {}
 
         # Use default_listen_port if 'App-Listen-Port' is not available
         listen_port = row.get('App-Listen-Port', default_listen_port)
         if listen_port == default_listen_port:
             default_listen_port += 1
-        yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
+        yaml_output[exporter_name][hostname]['ip_address'] = ip_address
+        yaml_output[exporter_name][hostname]['listen_port'] = int(row['App-Listen-Port'])
 
-        yaml_output[exporter_name][hostname][ip_address]['location'] = location
-        yaml_output[exporter_name][hostname][ip_address]['country'] = country
-        yaml_output[exporter_name][hostname][ip_address]['snmp_version'] = snmp_version
+        yaml_output[exporter_name][hostname]['location'] = location
+        yaml_output[exporter_name][hostname]['country'] = country
+        yaml_output[exporter_name][hostname]['snmp_version'] = snmp_version
 
         if snmp_version == '3':
-            yaml_output[exporter_name][hostname][ip_address]['username'] = snmp_user
-            yaml_output[exporter_name][hostname][ip_address]['privacy_protocol'] = 'aes'
-            yaml_output[exporter_name][hostname][ip_address]['privacy_passphrase'] = 'Sab10maas'
-            yaml_output[exporter_name][hostname][ip_address]['auth_protocol'] = 'sha'
-            yaml_output[exporter_name][hostname][ip_address]['auth_passphrase'] = 'Sab10maas'
+            yaml_output[exporter_name][hostname]['username'] = snmp_user
+            yaml_output[exporter_name][hostname]['privacy_protocol'] = 'aes'
+            yaml_output[exporter_name][hostname]['privacy_passphrase'] = 'Sab10maas'
+            yaml_output[exporter_name][hostname]['auth_protocol'] = 'sha'
+            yaml_output[exporter_name][hostname]['auth_passphrase'] = 'Sab10maas'
         else:
             if 'comm_string' in df.columns and not pd.isna(row['comm_string']):
                 yaml_output[exporter_name][hostname][ip_address]['community'] = row['comm_string']
@@ -1056,7 +1056,7 @@ def exporter_pfsense(file_path, output_file, output_dir):
     new_entries = []
     for index, row in df_filtered.iterrows():
         exporter_name = 'exporter_pfsense'
-        hostname = row['Hostnames']
+        hostname = row['FQDN']
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
@@ -1070,29 +1070,30 @@ def exporter_pfsense(file_path, output_file, output_dir):
             yaml_output[exporter_name][hostname] = {}
 
         if ip_address not in yaml_output[exporter_name][hostname]:
-            yaml_output[exporter_name][hostname][ip_address] = {}
+            yaml_output[exporter_name][hostname] = {}
 
         # Use default_listen_port if 'App-Listen-Port' is not available
         listen_port = row.get('App-Listen-Port', default_listen_port)
         if listen_port == default_listen_port:
             default_listen_port += 1
-        yaml_output[exporter_name][hostname][ip_address]['listen_port'] = int(row['App-Listen-Port'])
+        yaml_output[exporter_name][hostname]['ip_address'] = ip_address
+        yaml_output[exporter_name][hostname]['listen_port'] = int(row['App-Listen-Port'])
 
-        yaml_output[exporter_name][hostname][ip_address]['location'] = location
-        yaml_output[exporter_name][hostname][ip_address]['country'] = country
-        yaml_output[exporter_name][hostname][ip_address]['snmp_version'] = snmp_version
+        yaml_output[exporter_name][hostname]['location'] = location
+        yaml_output[exporter_name][hostname]['country'] = country
+        yaml_output[exporter_name][hostname]['snmp_version'] = snmp_version
 
         if snmp_version == '3':
-            yaml_output[exporter_name][hostname][ip_address]['username'] = snmp_user
-            yaml_output[exporter_name][hostname][ip_address]['privacy_protocol'] = 'aes'
-            yaml_output[exporter_name][hostname][ip_address]['privacy_passphrase'] = 'Sab10maas'
-            yaml_output[exporter_name][hostname][ip_address]['auth_protocol'] = 'sha'
-            yaml_output[exporter_name][hostname][ip_address]['auth_passphrase'] = 'Sab10maas'
+            yaml_output[exporter_name][hostname]['username'] = snmp_user
+            yaml_output[exporter_name][hostname]['privacy_protocol'] = 'aes'
+            yaml_output[exporter_name][hostname]['privacy_passphrase'] = 'Sab10maas'
+            yaml_output[exporter_name][hostname]['auth_protocol'] = 'sha'
+            yaml_output[exporter_name][hostname]['auth_passphrase'] = 'Sab10maas'
         else:
             if 'comm_string' in df.columns and not pd.isna(row['comm_string']):
-                yaml_output[exporter_name][hostname][ip_address]['community'] = row['comm_string']
+                yaml_output[exporter_name][hostname]['community'] = row['comm_string']
             else:
-                yaml_output[exporter_name][hostname][ip_address]['community'] = 'ENC'
+                yaml_output[exporter_name][hostname]['community'] = 'ENC'
 
         new_entries.append(row)
 
@@ -1127,7 +1128,7 @@ def exporter_aic(file_path, output_file, output_dir):
     new_entries = []
     for index, row in df_filtered.iterrows():
         exporter_name = 'exporter_aic'
-        fqdn = row['FQDN']
+        hostname = row['FQDN']
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
@@ -1135,19 +1136,19 @@ def exporter_aic(file_path, output_file, output_dir):
         if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
             continue
 
-        if fqdn not in yaml_output[exporter_name]:
-            yaml_output[exporter_name][fqdn] = {}
+        if hostname not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][hostname] = {}
 
-        yaml_output[exporter_name][fqdn]['ip_address'] = ip_address
+        yaml_output[exporter_name][hostname]['ip_address'] = ip_address
 
         # Use default_listen_port if 'App-Listen-Port' is not available
         listen_port = row.get('App-Listen-Port', default_listen_port)
         if listen_port == default_listen_port:
             default_listen_port += 1
 
-        yaml_output[exporter_name][fqdn]['listen_port'] = int(listen_port)
-        yaml_output[exporter_name][fqdn]['location'] = location
-        yaml_output[exporter_name][fqdn]['country'] = country
+        yaml_output[exporter_name][hostname]['listen_port'] = int(listen_port)
+        yaml_output[exporter_name][hostname]['location'] = location
+        yaml_output[exporter_name][hostname]['country'] = country
 
         new_entries.append(row)
 
@@ -1503,7 +1504,7 @@ def read_input_file(file_path):
     file_extension = os.path.splitext(file_path)[1]
     if file_extension == '.csv':
         # Read CSV file into pandas
-        df = pd.read_csv(file_path, skiprows=7, low_memory=False)
+        df = pd.read_csv(file_path, skiprows=6, low_memory=False)
     elif file_extension in ['.xlsx', '.xls']:
         # Read Excel file into pandas
         df = pd.read_excel(file_path, sheet_name='Sheet2', skiprows=range(0, 6))
@@ -1804,4 +1805,4 @@ def download(file_name):
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=8000)
+    app.run(debug=True, port=8000)
