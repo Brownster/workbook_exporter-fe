@@ -1,0 +1,3 @@
+runtime: python
+env: standard
+entrypoint: gunicorn -b :8000 wbexporter:wbexporter-fe.py
