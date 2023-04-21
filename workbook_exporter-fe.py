@@ -960,7 +960,6 @@ def exporter_network(file_path, output_file, output_dir):
 
 
 ############################################################### Exporter AAEP #####################################################################################
-
 def exporter_aaep(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
@@ -997,15 +996,12 @@ def exporter_aaep(file_path, output_file, output_dir):
         if hostname not in yaml_output[exporter_name]:
             yaml_output[exporter_name][hostname] = {}
 
-        if ip_address not in yaml_output[exporter_name][hostname]:
-            yaml_output[exporter_name][hostname] = {}
+        yaml_output[exporter_name][hostname]['ip_address'] = ip_address
 
-        # Use default_listen_port if 'App-Listen-Port' is not available
         listen_port = row.get('App-Listen-Port', default_listen_port)
         if listen_port == default_listen_port:
             default_listen_port += 1
-        yaml_output[exporter_name][hostname]['ip_address'] = ip_address
-        yaml_output[exporter_name][hostname]['listen_port'] = int(row['App-Listen-Port'])
+        yaml_output[exporter_name][hostname]['listen_port'] = int(listen_port)
 
         yaml_output[exporter_name][hostname]['location'] = location
         yaml_output[exporter_name][hostname]['country'] = country
@@ -1019,9 +1015,9 @@ def exporter_aaep(file_path, output_file, output_dir):
             yaml_output[exporter_name][hostname]['auth_passphrase'] = 'Sab10maas'
         else:
             if 'comm_string' in df.columns and not pd.isna(row['comm_string']):
-                yaml_output[exporter_name][hostname][ip_address]['community'] = row['comm_string']
+                yaml_output[exporter_name][hostname]['community'] = row['comm_string']
             else:
-                yaml_output[exporter_name][hostname][ip_address]['community'] = 'ENC'
+                yaml_output[exporter_name][hostname]['community'] = 'ENC'
 
         new_entries.append(row)
 
