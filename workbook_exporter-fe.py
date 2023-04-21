@@ -9,6 +9,7 @@ import time
 from flask import Flask, flash, request, redirect, url_for, render_template, send_from_directory, session
 import shutil
 import os
+import logging
 
 global listen_port_var
 output_path = None
@@ -1787,6 +1788,13 @@ def finish_and_clean():
 
     # Redirect the user back to the index page
     return redirect(url_for('upload_file'))
+
+@app.errorhandler(KeyError)
+def handle_key_error(e):
+    app.logger.exception("A KeyError occurred")
+    error_message = f"A KeyError occurred: {e}"
+    return render_template("error.html", error_message=error_message), 400
+
 
 
 @app.route('/terminal')
