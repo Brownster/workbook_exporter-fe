@@ -10,6 +10,7 @@ from flask import Flask, flash, request, redirect, url_for, render_template, sen
 import shutil
 import os
 import logging
+import werkzeug.exceptions
 
 global listen_port_var
 output_path = None
@@ -1789,12 +1790,40 @@ def finish_and_clean():
     # Redirect the user back to the index page
     return redirect(url_for('upload_file'))
 
+########## error handling
+
 @app.errorhandler(KeyError)
 def handle_key_error(e):
     app.logger.exception("A KeyError occurred")
     error_message = f"A KeyError occurred: {e}"
     return render_template("error.html", error_message=error_message), 400
 
+@app.errorhandler(ValueError)
+def handle_value_error(e):
+    error_message = f"A ValueError occurred: {e}"
+    return render_template("error.html", error_message=error_message), 400
+
+@app.errorhandler(FileNotFoundError)
+def handle_file_not_found_error(e):
+    error_message = f"A FileNotFoundError occurred: {e}"
+    return render_template("error.html", error_message=error_message), 404
+
+@app.errorhandler(OSError)
+def handle_os_error(e):
+    error_message = f"An OSError occurred: {e}"
+    return render_template("error.html", error_message=error_message), 500
+
+@app.errorhandler(werkzeug.exceptions.RequestEntityTooLarge)
+def handle_request_entity_too_large(e):
+    error_message = f"File size exceeds the allowed limit: {e}"
+    return render_template("error.html", error_message=error_message), 413
+
+@app.errorhandler(Exception)
+def handle_generic_error(e):
+    error_message = f"An unexpected error occurred: {e}"
+    app.logger.exception("An unexpected error occurred")
+    return render_template("error.html", error_message=error_message), 500
+############ end of error handling
 
 
 @app.route('/terminal')
