@@ -29,6 +29,16 @@
 <body>
     <form action="" method="post">
         <h1>Select Exporters</h1>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul>
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
         <label for="exporter_all">All</label>
         <input type="checkbox" id="exporter_all" name="exporters" value="all" onclick="toggleAll(this.checked)"><br>
         <!-- Add individual checkboxes for exporters -->
