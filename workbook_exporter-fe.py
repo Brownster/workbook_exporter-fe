@@ -59,7 +59,7 @@ def exporter_voiceportal(file_path, output_file, output_dir):
     exporter_generic('exporter_voiceportal', file_path, output_file, output_dir)
 
 ############################################################ EXPORTER_CALLBACK #####################################################################
-
+ 
 def exporter_callback(file_path, output_file, output_dir):
     exporter_generic('exporter_callback', file_path, output_file, output_dir)
 
@@ -77,11 +77,68 @@ def exporter_cms(file_path, output_file, output_dir):
 
 def exporter_sm(file_path, output_file, output_dir):
     exporter_generic('exporter_sm', file_path, output_file, output_dir)
+    
+############################################################  EXPORTER_AES  ################################################################################
+
+def exporter_aes(file_path, output_file, output_dir):
+    exporter_generic('exporter_aes', file_path, output_file, output_dir)
 
 ####################################################    EXPORTER_LINUX    #############################################################
-
 def exporter_linux(file_path, output_file, output_dir):
-    exporter_generic('exporter_linux', file_path, output_file, output_dir)
+    global default_listen_port
+    global output_path
+    new_entries = []
+    sorted_yaml_output =[]
+    try:
+        log("Exporter Linux called")
+
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        log(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_linux')
+    output_path = os.path.join(output_dir, output_file)
+
+    if df_filtered.empty:
+        log("No rows matching exporter_linux condition found")
+        return
+
+    # Initialize exporter_linux key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_linux', OrderedDict())])
+
+    for index, row in df_filtered.iterrows():
+        hostname = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+        listen_port = row['OS-Listen-Port']
+        ssh_username = row.get('ssh_username', 'put your username here')
+        ssh_password = row.get('ssh_password', 'put your password here')
+
+        if ip_exists_in_yaml('exporter_linux', ip_address, output_path=output_path):
+            log(f"IP {ip_address} already exists in the YAML file.")
+            continue
+
+        if hostname not in yaml_output.get('exporter_linux', {}):
+            yaml_output['exporter_linux'][hostname] = OrderedDict()
+
+        yaml_output['exporter_linux'][hostname]['ip_address'] = ip_address
+        yaml_output['exporter_linux'][hostname]['listen_port'] = int(listen_port) if not pd.isna(listen_port) else int(default_listen_port)
+        yaml_output['exporter_linux'][hostname]['location'] = location
+        yaml_output['exporter_linux'][hostname]['country'] = country
+        yaml_output['exporter_linux'][hostname]['username'] = ssh_username
+        yaml_output['exporter_linux'][hostname]['password'] = ssh_password
+
+        new_entries.append(row)
+
+    # Load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)
+    # Sort the YAML data by hostname before writing it to the output file
+    sorted_yaml_output = OrderedDict(sorted(yaml_output['exporter_linux'].items(), key=lambda x: x[0]))
+    # Write the YAML data to a file, either updating the existing file or creating a new file
+    process_exporter('exporter_linux', existing_yaml_output, new_entries, yaml_output, output_path)
 
 ######################################################  EXPORTER_BlackBox  #############################################################
 
@@ -101,6 +158,10 @@ def exporter_blackbox(file_path, output_file, output_dir):
     df_filtered = filter_rows_by_exporter(df, 'exporter_blackbox')
     output_path = os.path.join(output_dir, output_file)
 
+    if df_filtered.empty:
+        log("No rows matching exporter_blackbox condition found")
+        return    
+    
     # Initialize exporter_blackbox key in the YAML dictionary
     yaml_output['exporter_blackbox'] = {}
 
@@ -1598,7 +1659,7 @@ def run_exporters(selected_exporter_names, output_file, output_dir, file_path):
 
     # Run selected exporters
     if 'all' in selected_exporter_names:
-        run_scripts(['exporter_linux', 'exporter_blackbox', 'exporter_breeze', 'exporter_sm', 'exporter_avayasbc', 'exporter_gateway', 'exporter_verint', 'exporter_windows', 'exporter_ssl', 'exporter_cms', 'exporter_acm', 'exporter_jmx', 'exporter_weblm', 'exporter_vmware', 'exporter_kafka', 'exporter_callback', 'exporter_drac', 'exporter_genesyscloud', 'exporter_tcti'], file_path, output_file, output_dir)
+        run_scripts(['exporter_linux', 'exporter_blackbox', 'exporter_breeze', 'exporter_aes', 'exporter_sm', 'exporter_avayasbc', 'exporter_gateway', 'exporter_verint', 'exporter_windows', 'exporter_ssl', 'exporter_cms', 'exporter_acm', 'exporter_jmx', 'exporter_weblm', 'exporter_vmware', 'exporter_kafka', 'exporter_callback', 'exporter_drac', 'exporter_genesyscloud', 'exporter_tcti'], file_path, output_file, output_dir)
     else:
         for exporter_name in selected_exporter_names:
             if exporter_name == 'exporter_linux':
@@ -1610,77 +1671,111 @@ def run_exporters(selected_exporter_names, output_file, output_dir, file_path):
             elif exporter_name == 'exporter_ssl':
                 log("Running exporter_ssl")
                 exporter_ssl(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_aes':
+                log("Running exporter_aes")
+                exporter_aes(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_cms':
                 log("Running exporter_cms")
                 exporter_cms(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_windows':
+                log("Running exporter_windows")
                 exporter_windows(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_avayasbc':
+                log("Running exporter_avayasbc")
                 exporter_avayasbc(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_verint':
+                log("Running exporter_verint")
                 exporter_verint(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_gateway':
+                log("Running exporter_gateway")
                 exporter_gateway(file_path, output_file, output_dir) 
             elif exporter_name == 'exporter_breeze':
+                log("Running exporter_breeze")
                 exporter_breeze(file_path, output_file, output_dir) 
             elif exporter_name == 'exporter_sm':
+                log("Running exporter_sm")
                 exporter_sm(file_path, output_file, output_dir) 
             elif exporter_name == 'exporter_acm':
+                log("Running exporter_acm")
                 exporter_acm(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_jmx':
+                log("Running exporter_jmx")
                 exporter_jmx(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_weblm':
+                log("Running exporter_weblm")
                 exporter_weblm(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_vmware':
+                log("Running exporter_vmware")
                 exporter_vmware(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_kafka':
+                log("Running exporter_kafka")
                 exporter_kafka(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_callback':
+                log("Running exporter_callback")
                 exporter_callback(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_drac':
+                log("Running exporter_drac")
                 exporter_drac(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_genesyscloud':
+                log("Running exporter_genesyscloud")
                 exporter_genesyscloud(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_tcti':
+                log("Running exporter_tcti")
                 exporter_tcti(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_network':
+                log("Running exporter_network")
                 exporter_network(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_aaep':
+                log("Running exporter_aaep")
                 exporter_aaep(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_pfsense':
+                log("Running exporter_pfsense")
                 exporter_pfsense(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_aic':
+                log("Running exporter_aic")
                 exporter_aic(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_voiceportal':
+                log("Running exporter_voiceportal")
                 exporter_voiceportal(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_aam':
+                log("Running exporter_aam")
                 exporter_aam(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_ipo':
+                log("Running exporter_ipo")
                 exporter_ipo(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_iq':
+                log("Running exporter_iq")
                 exporter_iq(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_mpp':
+                log("Running exporter_mpp")
                 exporter_mpp(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_ams':
+                log("Running exporter_ams")
                 exporter_ams(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_pc5':
+                log("Running exporter_pc5")
                 exporter_pc5(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_wfodb':
+                log("Running exporter_wfodb")
                 exporter_wfodb(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_audiocodesbc':
+                log("Running exporter_audiocodesbc")
                 exporter_audiocodesbc(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_baas':
+                log("Running exporter_baas")
                 exporter_baas(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_redis':
+                log("Running exporter_redis")
                 exporter_redis(file_path, output_file, output_dir)
             elif exporter_name == 'add_snmp_args':
+                log("Adding snmp v3 extra_args to top of YAML")
                 add_snmp_args(file_path, output_file)
 
 
     # Show success message
     log('Success', 'Exporters completed')
 
-default_listen_port = [] # Replace 9000 with the desired default port number
+default_listen_port = []
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = '/tmp/'
