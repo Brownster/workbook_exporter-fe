@@ -155,15 +155,16 @@ def exporter_blackbox(file_path, output_file, output_dir):
         flash(f"Error: {e}")
         return
 
-    df = df[(df['icmp'] == True) & (df['ssh-banner'] == True)]
+    df_filtered = df[(df['icmp'] == True) & (df['ssh-banner'] == True)]
     output_path = os.path.join(output_dir, output_file)
 
     if df_filtered.empty:
         flash("No rows matching exporter_blackbox condition found")
         return    
     
-    # Initialize exporter_blackbox key in the YAML dictionary
-    yaml_output['exporter_blackbox'] = {}
+
+    # Create an empty dictionary to store the YAML output
+    yaml_output = OrderedDict([('exporter_blackbox', OrderedDict())])
 
     # Iterate over rows in filtered dataframe
     for index, row in df.iterrows():
