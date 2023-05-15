@@ -166,6 +166,12 @@ def exporter_blackbox(file_path, output_file, output_dir):
     # Create an empty dictionary to store the YAML output
     yaml_output = OrderedDict([('exporter_blackbox', OrderedDict())])
 
+    output_path = os.path.join(output_dir, output_file)
+
+    # Initialize new_entries list
+    new_entries = []    
+    
+    
     # Iterate over rows in filtered dataframe
     for index, row in df.iterrows():
         exporter_name = 'exporter_blackbox'
