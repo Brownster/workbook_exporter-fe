@@ -155,7 +155,7 @@ def exporter_blackbox(file_path, output_file, output_dir):
         flash(f"Error: {e}")
         return
 
-    df_filtered = filter_rows_by_exporter(df, 'exporter_blackbox')
+    df = df[(df['icmp'] == True) & (df['ssh-banner'] == True)]
     output_path = os.path.join(output_dir, output_file)
 
     if df_filtered.empty:
@@ -165,27 +165,19 @@ def exporter_blackbox(file_path, output_file, output_dir):
     # Initialize exporter_blackbox key in the YAML dictionary
     yaml_output['exporter_blackbox'] = {}
 
-    # Check if optional headers are present
-    ssh_username_present = 'ssh_username' in df.columns
-    ssh_password_present = 'ssh_password' in df.columns
-
     # Iterate over rows in filtered dataframe
-    new_entries = []
     for index, row in df.iterrows():
         exporter_name = 'exporter_blackbox'
-        hostname = row['FQDN']
+        hostname = row['Hostnames']
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-
-        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
-            continue
-
+    
         if hostname not in yaml_output.get(exporter_name, {}):
-             yaml_output[exporter_name][hostname] = {}
+            yaml_output[exporter_name][hostname] = {}
     
         if ip_address not in yaml_output[exporter_name][hostname]:
-             yaml_output[exporter_name][hostname][ip_address] = {}
+            yaml_output[exporter_name][hostname][ip_address] = {}
         
         yaml_output[exporter_name][hostname][ip_address]['location'] = location
         yaml_output[exporter_name][hostname][ip_address]['country'] = country
@@ -194,14 +186,11 @@ def exporter_blackbox(file_path, output_file, output_dir):
             yaml_output[exporter_name][hostname][ip_address]['module'] = 'icmp'
         
         if row['ssh-banner']:
-            ssh_ip_address = f"{ip_address}:22"
-            if ip_exists_in_yaml(exporter_name, ssh_ip_address, output_path=output_path):
-                continue
-            yaml_output[exporter_name][hostname][ssh_ip_address] = {
-                'module': 'ssh_banner',
-                'location': location,
-                'country': country
-            }
+            yaml_output[exporter_name][hostname][f'{ip_address}:22'] = {
+                 'module': 'ssh_banner',
+                 'location': location,
+                 'country': country
+        }
 
         new_entries.append(row)
 
