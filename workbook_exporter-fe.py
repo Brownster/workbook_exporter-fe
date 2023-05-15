@@ -175,7 +175,7 @@ def exporter_blackbox(file_path, output_file, output_dir):
     # Iterate over rows in filtered dataframe
     for index, row in df.iterrows():
         exporter_name = 'exporter_blackbox'
-        hostname = row['Hostnames']
+        hostname = row['FQDN']
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
