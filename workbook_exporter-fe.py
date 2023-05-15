@@ -221,7 +221,7 @@ def exporter_ssl(file_path, output_file, output_dir):
         return
 
     # Filter the data based on the condition
-    df_filtered = df[df['Exporter_SSL'] == True]
+    df_filtered = df[df['Exporter_SSL'] == TRUE]
 
     # Create an empty dictionary to store the YAML output
     yaml_output = OrderedDict([('exporter_ssl', OrderedDict())])
