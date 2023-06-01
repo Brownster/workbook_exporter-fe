@@ -1459,7 +1459,7 @@ def add_snmp_args(file_path, output_file):
         log(f"Error: {e}")
         return
 
-    snmp_args_string = 'extra_args: --snmp-3 --snmp-auth aes --snmpdetails --here'
+    snmp_args_string = 'trap_extra_args: " --snmp.version 3 --snmp.username maasng --snmp.privacy-protocol aes --snmp.privacy-passphrase Sab10maas --snmp.auth-protocol sha --snmp.auth-passphrase Sab10maas"'
 
     # Add this line to load existing YAML data
     existing_yaml_output = load_existing_yaml(output_path)
