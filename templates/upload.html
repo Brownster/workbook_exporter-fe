@@ -30,7 +30,23 @@
         }
 
         h1 span {
-            display: block; /* Moved this part to the main <style> section */
+            display: block;
+        }
+
+        /* Added styles for the GitHub link */
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #333;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 18px;
+        }
+
+        a:hover {
+            background-color: #555;
         }
     </style>
 </head>
@@ -54,6 +70,9 @@
             <input type="number" id="default_listen_port" name="default_listen_port"><br><br>
             <input type="submit" value="Upload">
         </form>
+
+        <!-- Added GitHub Link -->
+        <a href="https://github.com/Brownster/workbook_exporter-fe" target="_blank">View on GitHub</a>
     </div>
 </body>
 </html>
