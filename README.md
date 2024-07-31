@@ -74,7 +74,8 @@ If you want to contribute to this project, please submit a pull request with you
 
 
 
-![Screenshot from 2023-04-16 10-39-13](https://user-images.githubusercontent.com/6543166/232290330-8da3571e-e06a-4e51-8b01-8773ab11c2d0.png)
+![image](https://github.com/user-attachments/assets/363a9a3f-c436-42db-8508-e7a7b8322346)
+
 
 
 ![Screenshot from 2023-04-16 10-39-38](https://user-images.githubusercontent.com/6543166/232290325-768edd3a-5caf-4f71-b561-24b8b7eebdaf.png)
