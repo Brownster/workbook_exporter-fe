@@ -181,7 +181,7 @@ def exporter_blackbox(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
     
         if hostname not in yaml_output.get(exporter_name, {}):
             yaml_output[exporter_name][hostname] = {}
@@ -245,7 +245,7 @@ def exporter_ssl(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
         exporter_app = row['Exporter_name_app']
 
         # Set default listen_port to 443 and change it to 8443 if exporter_ssl is specified
@@ -469,7 +469,7 @@ def exporter_gateway(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
 
         if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
             continue
@@ -539,7 +539,7 @@ def exporter_tcti(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
 
         if ip_exists_in_yaml('exporter_tcti', ip_address, output_path=output_path):
             continue
@@ -592,7 +592,7 @@ def exporter_jmx(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
 
         if ip_exists_in_yaml('exporter_jmx', ip_address, output_path=output_path):
             continue
@@ -645,7 +645,7 @@ def exporter_vmware(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
 
         if ip_exists_in_yaml('exporter_vmware', ip_address, output_path=output_path):
             continue
@@ -705,7 +705,7 @@ def exporter_kafka(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
 
         output_path = os.path.join(output_dir, output_file)
         if ip_exists_in_yaml('exporter_kafka', ip_address, output_path=output_path):
@@ -763,7 +763,7 @@ def exporter_drac(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
 
         if ip_exists_in_yaml('exporter_drac', ip_address, output_path=output_path):
             continue
@@ -820,7 +820,7 @@ def exporter_genesyscloud(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
         comm_string = row.get('comm_string', 'public')
 
         if ip_exists_in_yaml('exporter_genesyscloud', ip_address, output_path=output_path):
@@ -881,7 +881,7 @@ def exporter_acm(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
         listen_port = row['App-Listen-Port']
         ssh_username = row.get('ssh_username', 'put your username here')
         ssh_password = row.get('ssh_password', 'put your password here')
@@ -949,7 +949,7 @@ def exporter_weblm(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
         listen_port = row['App-Listen-Port']
         ssh_username = row.get('ssh_username', 'put your username here')
         ssh_password = row.get('ssh_password', 'put your password here')
@@ -1007,7 +1007,7 @@ def exporter_network(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
 
         if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
             continue
@@ -1071,7 +1071,7 @@ def exporter_aaep(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
         snmp_version = row.get('snmp_version', '2')
         snmp_user = row.get('snmp_user', '')
 
@@ -1142,7 +1142,7 @@ def exporter_pfsense(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
         snmp_version = row.get('snmp_version', '2')
         snmp_user = row.get('snmp_user', '')
 
@@ -1216,7 +1216,7 @@ def exporter_aic(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
 
         if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
             continue
@@ -1273,7 +1273,7 @@ def exporter_oceanamonitor(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
 
         if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
             continue
@@ -1329,7 +1329,7 @@ def exporter_audiocodesbc(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
         snmp_version = row.get('snmp_version', 2)
 
         if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
@@ -1386,7 +1386,7 @@ def exporter_baas(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
 
         if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
             continue
@@ -1451,7 +1451,7 @@ def exporter_redis(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['environment']
+        environment = row['Environment']
 
         if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
             continue
@@ -1545,7 +1545,7 @@ def process_row_generic(exporter_name, row, yaml_output, default_listen_port):
     ip_address = row['IP Address']
     location = row['Location']
     country = row['Country']
-    environment = row['environment']
+    environment = row['Environment']
 
     if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
         return
