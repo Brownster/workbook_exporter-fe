@@ -147,69 +147,95 @@ def exporter_linux(file_path, output_file, output_dir):
 def exporter_blackbox(file_path, output_file, output_dir):
     global default_listen_port
     global output_path
-    yaml_output = OrderedDict([('exporter_blackbox', OrderedDict())])
+    
     try:
         flash("Exporter Blackbox called")
 
+        # Read input file
         df = read_input_file(file_path)
-
     except Exception as e:
         flash(f"Error: {e}")
         return
 
-    df_filtered = df[(df['icmp'] == True) & (df['ssh-banner'] == True)]
-    output_path = os.path.join(output_dir, output_file)
-
+    # Filter dataframe
+    df_filtered = df[(df['icmp'] == True) | (df['ssh-banner'] == True) | (df['TCP_Connect_Port'].notnull()) | (df['h2xx_url'].notnull())]
+    
     if df_filtered.empty:
         flash("No rows matching exporter_blackbox condition found")
-        return    
-    
+        return
 
-    # Create an empty dictionary to store the YAML output
+    # Initialize the YAML output with OrderedDict to preserve order
     yaml_output = OrderedDict([('exporter_blackbox', OrderedDict())])
-
     output_path = os.path.join(output_dir, output_file)
-
+    
     # Initialize new_entries list
-    new_entries = []    
-    
-    
-    # Iterate over rows in filtered dataframe
-    for index, row in df.iterrows():
+    new_entries = []
+
+    # Iterate over rows in the filtered dataframe
+    for index, row in df_filtered.iterrows():
         exporter_name = 'exporter_blackbox'
         hostname = row['FQDN']
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
         environment = row['Environment']
-    
-        if hostname not in yaml_output.get(exporter_name, {}):
-            yaml_output[exporter_name][hostname] = {}
-    
-        if ip_address not in yaml_output[exporter_name][hostname]:
-            yaml_output[exporter_name][hostname][ip_address] = {}
         
-        yaml_output[exporter_name][hostname][ip_address]['location'] = location
-        yaml_output[exporter_name][hostname][ip_address]['country'] = country
-        yaml_output[exporter_name][hostname][ip_address]['environment'] = environment
-    
+        # Ensure the dictionary structure is in place
+        if hostname not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][hostname] = OrderedDict()
+        
+        # Process ICMP
         if row['icmp']:
-            yaml_output[exporter_name][hostname][ip_address]['module'] = 'icmp'
-        
-        if row['ssh-banner']:
-            yaml_output[exporter_name][hostname][f'{ip_address}:22'] = {
-                 'module': 'ssh_banner',
-                 'location': location,
-                 'country': country,
-                 'environment': environment
-        }
+            if ip_address not in yaml_output[exporter_name][hostname]:
+                yaml_output[exporter_name][hostname][ip_address] = OrderedDict()
+            yaml_output[exporter_name][hostname][ip_address] = {
+                'module': 'icmp',
+                'location': location,
+                'country': country,
+                'environment': environment
+            }
 
+        # Process SSH Banner
+        if row['ssh-banner']:
+            ssh_ip_key = f'{ip_address}:22'
+            if ssh_ip_key not in yaml_output[exporter_name][hostname]:
+                yaml_output[exporter_name][hostname][ssh_ip_key] = OrderedDict()
+            yaml_output[exporter_name][hostname][ssh_ip_key] = {
+                'module': 'ssh_banner',
+                'location': location,
+                'country': country,
+                'environment': environment
+            }
+
+        # Process TCP Connect
+        if pd.notnull(row['TCP_Connect_Port']):
+            tcp_ip_key = f'{ip_address}:{int(row["TCP_Connect_Port"])}'
+            if tcp_ip_key not in yaml_output[exporter_name][hostname]:
+                yaml_output[exporter_name][hostname][tcp_ip_key] = OrderedDict()
+            yaml_output[exporter_name][hostname][tcp_ip_key] = {
+                'module': 'tcp_connect',
+                'location': location,
+                'country': country,
+                'environment': environment
+            }
+
+        # Process HTTP 2XX
+        if pd.notnull(row['h2xx_url']):
+            h2xx_url = row['h2xx_url']
+            if h2xx_url not in yaml_output[exporter_name][hostname]:
+                yaml_output[exporter_name][hostname][h2xx_url] = OrderedDict()
+            yaml_output[exporter_name][hostname][h2xx_url] = {
+                'module': 'http_2xx',
+                'location': location,
+                'country': country,
+                'environment': environment
+            }
+
+        # Collect the row for new entries
         new_entries.append(row)
 
     # Write the YAML data to a file, either updating the existing file or creating a new file
-    output_path = os.path.join(output_dir, output_file)
     existing_yaml_output = load_existing_yaml(output_path)
-
     process_exporter('exporter_blackbox', existing_yaml_output, new_entries, yaml_output, output_path)
 
 ########################################################  EXPORTER_SSL  ##################################################################
