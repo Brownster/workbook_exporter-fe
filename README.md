@@ -9,6 +9,12 @@ Features
     Display progress in a live-updating terminal window
     Clean up temporary files and download the output
 
+Required Document headers
+Configuration Item Name,Location,Country,Environment,Domain,Hostnames,FQDN,IP Address,Exporter_name_os,OS-Listen-Port,Exporter_name_app,App-Listen-Port,Exporter_name_app_1,App-Listen-Port-1,Exporter_name_app_2,App-Listen-Port-2,Exporter_name_app_3,App-Listen-Port-3,http_2xx,h2xx_url,icmp,ssh-banner,tcp-connect,TCP_Connect_Port,SNMP,Exporter_SSL, 
+
+Optional Document headers
+comm_string,ssh_username,ssh_password,jmx_ports,snmp_version,snmp_user,snmp_password
+
 Prerequisites
 
     Python 3.7+
