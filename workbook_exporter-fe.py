@@ -189,7 +189,7 @@ def exporter_blackbox(file_path, output_file, output_dir):
         ip_address = row['IP Address']
         location = row['Location']
         country = row['Country']
-        environment = row['Environment']
+        environment = row['environment']
         
         # Ensure the dictionary structure is in place
         if hostname not in yaml_output[exporter_name]:
