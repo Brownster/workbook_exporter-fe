@@ -6,7 +6,7 @@ Features
     Upload CSV and optional YAML files
     Select from a list of available exporters
     Process the uploaded files with the chosen exporters
-    Display progress in a live-updating terminal window
+    # Display progress in a live-updating terminal window not working (refresh page to get update on last processed exporters - can process one at a time to choose order in doc)
     Clean up temporary files and download the output
 
 Required Document headers
