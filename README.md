@@ -86,4 +86,6 @@ If you want to contribute to this project, please submit a pull request with you
 
 
 
-![Screenshot from 2023-04-16 10-39-38](https://user-images.githubusercontent.com/6543166/232290325-768edd3a-5caf-4f71-b561-24b8b7eebdaf.png)
+
+<img width="544" alt="Screenshot 2023-12-21 111809" src="https://github.com/user-attachments/assets/4762e2b7-e0ce-43a6-8aae-9b0102e5211b">
+
