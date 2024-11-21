@@ -153,6 +153,17 @@ def exporter_blackbox(file_path, output_file, output_dir):
 
         # Read input file
         df = read_input_file(file_path)
+        
+        # Add default columns if missing
+        if 'TCP_Connect_Port' not in df.columns:
+            df['TCP_Connect_Port'] = None
+        if 'icmp' not in df.columns:
+            df['icmp'] = False
+        if 'ssh-banner' not in df.columns:
+            df['ssh-banner'] = False
+        if 'h2xx_url' not in df.columns:
+            df['h2xx_url'] = None
+            
     except Exception as e:
         flash(f"Error: {e}")
         return
