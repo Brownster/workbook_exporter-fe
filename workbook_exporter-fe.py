@@ -83,6 +83,77 @@ def exporter_sm(file_path, output_file, output_dir):
 def exporter_aes(file_path, output_file, output_dir):
     exporter_generic('exporter_aes', file_path, output_file, output_dir)
 
+
+########################################################### Exporter AES SNMP #############################################################################
+
+def exporter_aessnmp(file_path, output_file, output_dir):
+    global default_listen_port
+    global output_path
+    yaml_output = {'exporter_aessnmp': {}}
+    try:
+        flash("Exporter AES SNMP called")
+
+        df = read_input_file(file_path)
+
+    except Exception as e:
+        flash(f"Error: {e}")
+        return
+
+    df_filtered = filter_rows_by_exporter(df, 'exporter_aessnmp')
+    output_path = os.path.join(output_dir, output_file)
+
+    # Initialize exporter_avayasbc key in the YAML dictionary
+    yaml_output = OrderedDict([('exporter_aessnmp', OrderedDict())])
+
+    # Iterate over rows in filtered dataframe
+    new_entries = []
+    for index, row in df_filtered.iterrows():
+        exporter_name = 'exporter_aessnmp'
+        hostname = row['FQDN']
+        ip_address = row['IP Address']
+        location = row['Location']
+        country = row['Country']
+        environment = row['Environment']
+
+        snmp_version = row.get('snmp_version', 'v2')
+        snmp_user = row.get('snmp_user', None)
+        snmp_pass = row.get('snmp_password', None)
+
+        if ip_exists_in_yaml(exporter_name, ip_address, output_path=output_path):
+            continue
+
+        if hostname not in yaml_output[exporter_name]:
+            yaml_output[exporter_name][hostname] = {}
+
+        if ip_address not in yaml_output[exporter_name][hostname]:
+            yaml_output[exporter_name][hostname]= {}
+
+            listen_port = row.get('App-Listen-Port', default_listen_port)
+            if listen_port == default_listen_port:
+                 default_listen_port += 1
+            yaml_output[exporter_name][hostname]['ip_address'] = ip_address
+            yaml_output[exporter_name][hostname]['listen_port'] = int(row['App-Listen-Port'])
+            yaml_output[exporter_name][hostname]['location'] = location
+            yaml_output[exporter_name][hostname]['country'] = country
+            yaml_output['exporter_name'][hostname]['environment'] = environment
+            
+            if snmp_version == 'v3' and snmp_user is not None:
+                yaml_output[exporter_name][hostname]['username'] = snmp_user
+                yaml_output[exporter_name][hostname]['privacy_protocol'] = 'aes'
+                yaml_output[exporter_name][hostname]['privacy_passphrase'] = snmp_pass
+                yaml_output[exporter_name][hostname]['auth_protocol'] = 'sha'
+                yaml_output[exporter_name][hostname]['auth_passphrase'] = snmp_pass
+            else:
+                yaml_output[exporter_name][hostname]['username'] = 'maas'
+
+            new_entries.append(row)
+
+    # Load existing YAML data
+    existing_yaml_output = load_existing_yaml(output_path)
+    # Write the YAML data to a file, either appending to an existing file or creating a new file
+    process_exporter('exporter_aessnmp', existing_yaml_output, new_entries, yaml_output, output_path)
+
+
 ####################################################    EXPORTER_LINUX    #############################################################
 def exporter_linux(file_path, output_file, output_dir):
     global default_listen_port
@@ -1731,7 +1802,7 @@ def run_exporters(selected_exporter_names, output_file, output_dir, file_path):
     # Run selected exporters
     if 'all' in selected_exporter_names:
         flash('Running all exporters .. this will take a moment')
-        run_scripts(['exporter_linux', 'exporter_blackbox', 'exporter_breeze', 'exporter_aes', 'exporter_sm', 'exporter_avayasbc', 'exporter_gateway', 'exporter_verint', 'exporter_windows', 'exporter_ssl', 'exporter_cms', 'exporter_acm', 'exporter_jmx', 'exporter_weblm', 'exporter_vmware', 'exporter_kafka', 'exporter_callback', 'exporter_drac', 'exporter_genesyscloud', 'exporter_tcti'], file_path, output_file, output_dir)
+        run_scripts(['exporter_linux', 'exporter_blackbox', 'exporter_breeze', 'exporter_aes','exporter_aessnmp', 'exporter_sm', 'exporter_avayasbc', 'exporter_gateway', 'exporter_verint', 'exporter_windows', 'exporter_ssl', 'exporter_cms', 'exporter_acm', 'exporter_jmx', 'exporter_weblm', 'exporter_vmware', 'exporter_kafka', 'exporter_callback', 'exporter_drac', 'exporter_genesyscloud', 'exporter_tcti'], file_path, output_file, output_dir)
     else:
         for exporter_name in selected_exporter_names:
             if exporter_name == 'exporter_linux':
@@ -1746,6 +1817,9 @@ def run_exporters(selected_exporter_names, output_file, output_dir, file_path):
             elif exporter_name == 'exporter_aes':
                 flash("Running exporter_aes")
                 exporter_aes(file_path, output_file, output_dir)
+            elif exporter_name == 'exporter_aessnmp':
+                flash("Running exporter_aessnmp")
+                exporter_aessnmp(file_path, output_file, output_dir)
             elif exporter_name == 'exporter_cms':
                 flash("Running exporter_cms")
                 exporter_cms(file_path, output_file, output_dir)
